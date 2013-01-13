@@ -1,4 +1,6 @@
 describe("models", function() {
+	"use strict";
+
 	var TestModel, model;
 
 	beforeEach(function() {

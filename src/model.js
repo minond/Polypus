@@ -1,4 +1,7 @@
 (function(global) {
+	"use strict";
+
+	var Model, save_action, has_props, foreach, trigger;
 
 	/**
 	 * stores an action in storage
@@ -7,7 +10,7 @@
 	 * @param string property
 	 * @param function action
 	 */
-	var save_action = function(storage, namespace, property, action) {
+	save_action = function(storage, namespace, property, action) {
 		if (!(namespace in storage)) {
 			storage[ namespace ] = {};
 		}
@@ -25,7 +28,7 @@
 	 * @param array props
 	 * @return boolean
 	 */
-	var has_props = function(storage, props) {
+	has_props = function(storage, props) {
 		var check = storage;
 
 		for (var i = 0, len = props.length; i < len; i++) {
@@ -45,7 +48,7 @@
 	 * @param array list
 	 * @param function action
 	 */
-	var foreach = function(list, action) {
+	foreach = function(list, action) {
 		for (var i = 0, z = list.length; i < z; i++) {
 			action(i, list[ i ]);
 		}
@@ -57,7 +60,7 @@
 	 * @param string namespace
 	 * @param string property
 	 */
-	var trigger = function (namespace, property) {
+	trigger = function (namespace, property) {
 		var me = "__self" in this ? this.__self : this,
 			args = Array.prototype.slice.call(arguments, 2);
 
@@ -76,7 +79,12 @@
 		}
 	};
 
-	global.Model = function(props) {
+	/**
+	 * create a new model object
+	 * @param object props
+	 * @return ModelInstance
+	 */
+	global.Model = function Model(props) {
 		var observing = {}, base;
 	
 		/**
@@ -182,4 +190,3 @@
 		return base;
 	};
 })(this);
-
