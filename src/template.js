@@ -130,10 +130,12 @@
 	 * @return Template
 	 */
 	Template.get = function(el_id) {
-		var el = document.getElementById(el_id),
-			tmpl = new Template(el.innerHTML);
+		var tmpl, el = document.getElementById(el_id);
 
+		tmpl = new Template(el.innerHTML
+			.replace(/data-template-/g, ''));
 		el.innerHTML = "";
+
 		return tmpl;
 	};
 })(this);
