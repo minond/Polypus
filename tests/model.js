@@ -204,4 +204,16 @@ describe("models", function() {
 		expect(nums[1]).toBe(2);
 		expect(nums[2]).toBe(3);
 	});
+
+	it("should load contructor arguments", function() {
+		model = new TestModel({ first_name: "Marcos" });
+		expect(model.get_first_name()).toBe("Marcos");
+	});
+
+	it("contructor arguments should trigger setter listeners", function() {
+		var called = false;
+		TestModel.observe("set", "first_name", function() { called = true; });
+		model = new TestModel({ first_name: "Marcos" });
+		expect(called).toBe(true);
+	});
 });

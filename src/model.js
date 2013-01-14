@@ -89,9 +89,20 @@
 	
 		/**
 		 * model construcor
+		 * @param props
 		 */
-		base = function ModelInstance() {
+		base = function ModelInstance(props) {
+			var setter;
 			this.observing = {};
+
+			if (props) {
+				for (var prop in props) {
+					setter = "set_" + prop;
+					if (this[ setter ] && this[ setter ] instanceof Function) {
+						this[ setter ](props[ prop ]);
+					}
+				}
+			}
 		};
 
 		/**

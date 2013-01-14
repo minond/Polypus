@@ -123,4 +123,17 @@
 
 		return copy.join("");
 	};
+
+	/**
+	 * retrieve a template's content from an element's markup
+	 * @param string el_id
+	 * @return Template
+	 */
+	Template.get = function(el_id) {
+		var el = document.getElementById(el_id),
+			tmpl = new Template(el.innerHTML);
+
+		el.innerHTML = "";
+		return tmpl;
+	};
 })(this);
