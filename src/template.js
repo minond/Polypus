@@ -84,7 +84,7 @@
 	 * @param object fields
 	 * @return string
 	 */
-	Template.prototype.merge = function(fields) {
+	Template.prototype.render = function(fields) {
 		var value, field, copy = this.body.concat();
 		fields = fields || {};
 
@@ -102,7 +102,7 @@
 							value = [];
 
 							for (var j = 0, max = fields[ field.name ].length; j < max; j++) {
-								value.push(field.misc.tpl.merge(fields[ field.name ][ j ]));
+								value.push(field.misc.tpl.render(fields[ field.name ][ j ]));
 							}
 
 							value = value.join("");
