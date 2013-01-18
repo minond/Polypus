@@ -1,7 +1,15 @@
 (function(global) {
 	"use strict";
 
-	var Model, save_action, has_props, foreach, trigger;
+	var Model, save_action, has_props, foreach, trigger, gen_id;
+
+	/**
+	 * generate a random id
+	 * @return string
+	 */
+	gen_id = function() {
+		return Math.random().toString().substr(3, 10) + Date.now();
+	};
 
 	/**
 	 * stores an action in storage
@@ -85,7 +93,7 @@
 	 * @return ModelInstance
 	 */
 	global.Model = function Model(props) {
-		var observing = {}, base;
+		var observing = {}, all = [], base;
 	
 		/**
 		 * model construcor
@@ -101,6 +109,31 @@
 					if (this[ setter ] && this[ setter ] instanceof Function) {
 						this[ setter ](props[ prop ]);
 					}
+				}
+			}
+
+			this.__id = gen_id();
+			all.push(this);
+		};
+
+		/**
+		 * models track all of their instances. this returns an array to all
+		 * created instances so far
+		 * @return ModelInstance[]
+		 */
+		base.all = function() {
+			return all;
+		};
+
+		/**
+		 * model instance search
+		 * @param string id
+		 * @return ModelInstance
+		 */
+		base.id = function(id) {
+			for (var i = 0, len = all.length; i < len; i++) {
+				if (all[ i ].__id === id) {
+					return all[ i ];
 				}
 			}
 		};
