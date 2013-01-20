@@ -230,6 +230,7 @@ var test = new Template(
 
 			if (ch === esc && (next === open || next === close)) {
 				// escaped delimeter, save and skip next time
+				// debugger;
 				parts[ parts.length - 1 ] += next;
 				i++;
 				continue;
@@ -285,6 +286,7 @@ var test = new Template(
 			} else if (cur instanceof Object) {
 				if (cur.raw === cur.field) {
 					// single merge field
+					console.log(cur.field);
 					str.push(fields[ cur.field ]);
 				} else {
 					// list merge field
@@ -313,18 +315,27 @@ var test = new Template(
 		if (this instanceof Template) {
 			this.contents = contents;
 		} else {
-			return render_merge_fields(contents, fields);
+			return render_merge_fields(
+				contents,
+				fields,
+				Template.config.operator
+			);
 		}
 	};
 
 	Template.prototype.render = function(fields) {
-		return render_merge_fields(this.contents, fields);
+		return render_merge_fields(
+			this.contents,
+			fields,
+			Template.config.operator
+		);
 	};
 
 	Template.config = {
 		open: "{",
 		close: "}",
-		esc: "\\"
+		esc: "\\",
+		operator: {}
 	};
 
 	Template.api = {
@@ -336,8 +347,11 @@ var test = new Template(
 	};
 })(this);
 
+
+Template2.config.operator["*"] = function() {};
+
 var message = new Template2(
-	"{users hi, \\{my\\} name is {name}\n" +
+	"!!\n\n{users hi, my name is {name}\n" +
 	"i'm {age} years old\n" +
 	"and these are my favorite colors:\n" +
 	"{colors {color}, }" +
