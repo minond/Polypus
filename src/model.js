@@ -1,7 +1,7 @@
 (function(global) {
 	"use strict";
 
-	var Model, save_action, has_props, foreach, trigger, gen_id;
+	var Model, ModelEnumerableValue, save_action, has_props, foreach, trigger, gen_id;
 
 	/**
 	 * generate a random id
@@ -92,9 +92,9 @@
 	 * @param object props
 	 * @return ModelInstance
 	 */
-	global.Model = function Model(props) {
+	Model = global.Model = function Model(props) {
 		var observing = {}, all = [], base;
-	
+
 		/**
 		 * model construcor
 		 * @param props
@@ -183,7 +183,7 @@
 						args.shift();
 						args.shift();
 						ret = props[ prop ].apply(this, args);
-						
+
 						// instance
 						trigger.apply(this, ["after", prop, ret]);
 
@@ -195,42 +195,98 @@
 
 						return ret;
 					};
-				}
-				else {
-					// value
-					base.prototype[ prop ] = props[ prop ];
+				} else {
+					if (props[ prop ] instanceof ModelEnumerableValue) {
+						// value
+						base[ prop ] = props[ prop ];
+						base.prototype[ prop ] = null;
 
-					// setter
-					base.prototype[ "set_" + prop ] = function (val) {
-						this[ prop ] = val;
-						
-						// instance
-						trigger.apply(this, ["set", prop, val]);
+						// setter
+						base.prototype[ "set_" + prop ] = function (val) {
+							if (val in base[ prop ]) {
+								this[ prop ] = val;
 
-						// global
-						trigger.apply({
-							observing: observing,
-							__self: this
-						}, ["set", prop, val]);
-					};
+								// instance
+								trigger.apply(this, ["set", prop, val]);
 
-					// getter
-					base.prototype[ "get_" + prop ] = function () {
-						// instance
-						trigger.apply(this, ["get", prop]);
+								// global
+								trigger.apply({
+									observing: observing,
+									__self: this
+								}, ["set", prop, val]);
+							} else {
+								throw new Error("Invalid value");
+							}
+						};
 
-						// global
-						trigger.apply({
-							observing: observing,
-							__self: this
-						}, ["get", prop]);
+						// getter
+						base.prototype[ "get_" + prop ] = function () {
+							// instance
+							trigger.apply(this, ["get", prop]);
 
-						return this[ prop ];
-					};
+							// global
+							trigger.apply({
+								observing: observing,
+								__self: this
+							}, ["get", prop]);
+
+							return this[ prop ];
+						};
+					} else {
+						// value
+						base.prototype[ prop ] = props[ prop ];
+
+						// setter
+						base.prototype[ "set_" + prop ] = function (val) {
+							this[ prop ] = val;
+
+							// instance
+							trigger.apply(this, ["set", prop, val]);
+
+							// global
+							trigger.apply({
+								observing: observing,
+								__self: this
+							}, ["set", prop, val]);
+						};
+
+						// getter
+						base.prototype[ "get_" + prop ] = function () {
+							// instance
+							trigger.apply(this, ["get", prop]);
+
+							// global
+							trigger.apply({
+								observing: observing,
+								__self: this
+							}, ["get", prop]);
+
+							return this[ prop ];
+						};
+					}
 				}
 			})(prop, thisprop);
 		}
 
 		return base;
+	};
+
+	/**
+	 * @var ModelEnumerableValue
+	 */
+	ModelEnumerableValue = function() {};
+
+	/**
+	 * @param mixed list*
+	 * @return ModelEnumerableValue
+	 */
+	Model.enum = function(list) {
+		var options = new ModelEnumerableValue;
+
+		for (var i = 0, len = arguments.length; i < len; i++) {
+			options[ arguments[ i ] ] = arguments[ i ];
+		}
+
+		return options;
 	};
 })(this);

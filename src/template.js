@@ -1,178 +1,6 @@
 (function(global) {
 	"use strict";
 
-	var Template, compile, mergefield, mergetypes, parse_field;
-
-	/**
-	 * merge field "token" match
-	 * @var regexp
-	 */
-	mergefield = {
-		// in_string: /([\\#|@|~]){(.+?)}/g,
-		in_string: /([\\#|@|~]){([\s\S]+?)}/g,
-		in_list: /(#)(\w+)/g
-	};
-
-	/**
-	 * merge field types.
-	 * identified by character before opening curly bracket
-	 * @var object
-	 */
-	mergetypes = { STRING: '#', LIST: '@' };
-
-	/**
-	 * takes a "raw" template string and returns an array for future merges
-	 * @param string
-	 * @param regex match
-	 * @param int padleft
-	 * @param int padright
-	 * @return array
-	 */
-	compile = function(str, match, padleft, padright) {
-		var loc, field, parts = [],
-			fields = str.match(match);
-
-		if (fields) {
-			for (var i = 0, len = fields.length; i < len; i++) {
-				field = fields[ i ];
-				loc = str.indexOf(field);
-				parts.push(str.substr(0, loc));
-				parts.push(parse_field(field, padleft, padright));
-				str = str.substr(loc + field.length);
-			}
-		}
-
-		parts.push(str);
-		return parts;
-	};
-
-	/**
-	 * clean up a merge field. removes merge field type character and curly
-	 * brackets
-	 * @param string field
-	 * @param int padleft
-	 * @param int padright
-	 * @return object
-	 */
-	parse_field = function(field, padleft, padright) {
-		var type = field.charAt(0),
-			name = field.substring(padleft, field.length - padright),
-			temp = null, misc = null, whitespaceloc;
-
-		if (type === mergetypes.LIST) {
-			whitespaceloc = Math.min.apply(Math,
-				[ name.indexOf("\r"), name.indexOf("\n"), name.indexOf(" ") ]
-				.filter(function(num) {
-					return num > 0;
-				})
-			);
-
-			temp = name;
-			name = name.substr(0, whitespaceloc);
-
-			// internal template
-			misc = temp.substr(name.length);
-			misc = { raw: misc, tpl: new Template(misc) };
-			misc.tpl.body = compile(misc.raw, mergefield.in_list, 1, 0);
-			misc.tpl.body[ 0 ] = misc.tpl.body[ 0 ].substr(1);
-		}
-
-		return { type: type, name: name, misc: misc };
-	};
-
-	/**
-	 * @param string str
-	 */
-	Template = global.Template = function Template(str) {
-		this.raw = str;
-		this.body = compile(str, mergefield.in_string, 2, 1);
-	};
-
-	/**
-	 * @param object fields
-	 * @return string
-	 */
-	Template.prototype.render = function(fields) {
-		var value, field, copy = this.body.concat();
-		fields = fields || {};
-
-		for (var i = 0, len = copy.length; i < len; i++) {
-			field = copy[ i ];
-
-			if (field instanceof Object) {
-				if (field.name in fields) {
-					switch (field.type) {
-						case mergetypes.STRING:
-							value = fields[ field.name ];
-							break;
-
-						case mergetypes.LIST:
-							value = [];
-
-							for (var j = 0, max = fields[ field.name ].length; j < max; j++) {
-								value.push(field.misc.tpl.render(fields[ field.name ][ j ]));
-							}
-
-							value = value.join("");
-							break;
-
-						default:
-							value = "";
-							break;
-					}
-
-					copy[ i ] = value;
-				}
-				else {
-					copy[ i ] = "";
-				}
-			}
-		}
-
-		return copy.join("");
-	};
-
-	/**
-	 * retrieve a template's content from an element's markup
-	 * @param string el_id
-	 * @return Template
-	 */
-	Template.get = function(el_id) {
-		var tmpl, el = document.getElementById(el_id);
-
-		tmpl = new Template(el.innerHTML
-			.replace(/data-template-/g, ''));
-		el.innerHTML = "";
-
-		return tmpl;
-	};
-})(this);
-
-
-var test = new Template(
-	"@{nums\n" +
-	"#num\n" +
-	"}"
-);
-
-// console.log(test.raw);
-// console.log(test.body);
-// console.log(test.body[1]);
-// console.log(test.render({
-// 	nums: [
-// 		{ num: 1 },
-// 		{ num: 2 },
-// 		{ num: 3 },
-// 		{ num: 4 },
-// 		{ num: 5 }
-// 	]
-// }));
-
-
-
-(function(global) {
-	"use strict";
-
 	var Template, get_merge_field_label, get_merge_field_operator,
 		get_merge_field_contents, get_fieldless_string, has_merge_fields,
 		parse_merge_fields, render_merge_fields;
@@ -324,7 +152,6 @@ var test = new Template(
 
 						if (cur.operator && cur.operator in operators) {
 							str.push(operators[ cur.operator ].call(
-								// Template.api, inner_cur, cur, fields
 								Template.api, cur, fields
 							));
 						} else if (inner_cur instanceof Array) {
@@ -340,7 +167,13 @@ var test = new Template(
 		return str.join("");
 	};
 
-	Template = global.Template2 = function CompiledTemplate(str, fields) {
+	/**
+	 * constructor
+	 * @param string str
+	 * @param object fields
+	 * @param mixed CompiledTemplate|string
+	 */
+	Template = global.Template = function CompiledTemplate(str, fields) {
 		var contents = parse_merge_fields(
 			str,
 			Template.config.open,
@@ -356,6 +189,10 @@ var test = new Template(
 		}
 	};
 
+	/**
+	 * @param object fields
+	 * @return string
+	 */
 	Template.prototype.render = function(fields) {
 		var str = render_merge_fields(this.contents, fields);
 
@@ -366,6 +203,10 @@ var test = new Template(
 		return str;
 	};
 
+	/**
+	 * @param Node holder
+	 * @return CompiledTemplate[]
+	 */
 	Template.load = function(holder) {
 		var par, el, tpl, tpls = [], els = holder.getElementsByTagName("script");
 		var bind = "template:bind", bindto;
@@ -392,9 +233,11 @@ var test = new Template(
 						par.innerHTML = tpl.render(bindto);
 					}
 
-					tpl.bind(bindto, function(str) {
-						par.innerHTML = str;
-					});
+					(function(par) {
+						tpl.bind(bindto, function(str) {
+							par.innerHTML = str;
+						});
+					})(par);
 				}
 			}
 		}
@@ -402,6 +245,9 @@ var test = new Template(
 		return tpls;
 	};
 
+	/**
+	 * @param Node el
+	 */
 	Template.prototype.set_output = function(el) {
 		this.output = el;
 	};
@@ -427,6 +273,10 @@ var test = new Template(
 		}
 	};
 
+	/**
+	 * configuration settings
+	 * holds operators as well.
+	 */
 	Template.config = {
 		open: "{",
 		close: "}",
@@ -434,6 +284,9 @@ var test = new Template(
 		operator: {}
 	};
 
+	/**
+	 * for testing
+	 */
 	Template.api = {
 		get_merge_field_contents: get_merge_field_contents,
 		get_merge_field_operator: get_merge_field_operator,
@@ -444,104 +297,3 @@ var test = new Template(
 		render_merge_fields: render_merge_fields
 	};
 })(this);
-
-
-Template2.config.operator["..."] = function(template, fields) {
-	return val.substr(0, +template.compiled[0]) + "...";
-};
-
-Template2.config.operator["()"] = function(template, fields) {
-	return fields[ template.field ]( +template.compiled[0] );
-	return val(+template.compiled[0]);
-};
-
-Template2.config.operator["*"] = function(template, fields) {
-	var str = [], val = fields[ template.field ];
-	// var str2="";
-
-	while (val--) {
-		// str2 += (this.render_merge_fields(template, fields));
-		str.push(this.render_merge_fields(template, fields));
-	}
-
-
-	// return str2;
-	return str.join("");
-};
-
-Template2.config.operator["//"] = function(template, fields) {
-	return "";
-	return this.render_merge_fields(template, fields);
-};
-
-Template2.config.operator["[<#]"] = function(template, fields) {
-	return fields[ "__cache_" + template.field ] = fields[ template.field ]();
-};
-
-Template2.config.operator["[#>]"] = function(template, fields) {
-	return fields[ "__cache_" + template.field ];
-};
-
-var message = new Template2(
-	// "!!\n\n {users hi, my name is {name}\n" +
-	// "i'm {age} years old\n" +
-	// "and these are my favorite colors:\n" +
-	// "{colors {color}, }" +
-	// "-------------------------------\n\n}" +
-	// " {name... 10} {mult_age() 7} \n\n" +
-	// '<table>{rows* <tr>{columns* <td style="color: {rand_color()}; font: 11px monospace; text-align: justify;">{name}</td>}</tr>}</table>'
-	// "{rows* {rand_color[<#]}{rows* {rand_color[#>]}...}}"
-	// "{rows* {rand_color(#)} {rows*  {rows} hey baby, {__cache}} -}"
-	""
-);
-
-var ship = new Template2(
-	"{name}, {width} by {length}"
-);
-
-var ships = new Template2(
-	"\n{ships {name}:\n\t\t[{width}, {length}]\n\t\t{length* -}\n}"
-);
-
-var str = message.render({
-	rows: 200,
-	columns: 30,
-	name: "Marcos Oscar Estrada Minond",
-	name: "Marcos Minond",
-	mult_age: function(mult) { return mult * 3; },
-	rand_color: function() {
-		return '#' + (function co(lor){   return (lor +=
-		  [0,1,2,3,4,5,6,7,8,9,'a','b','c','d','e','f'][Math.floor(Math.random()*16)])
-		  && (lor.length == 6) ?  lor : co(lor); })('');
-	},
-	users: [
-		{ name: "Marcos", age: 23, colors: [ { color: "red" }, { color: "blue" } ] },
-		{ name: "Marcos", age: 23, colors: [ { color: "red" }, { color: "blue" } ] },
-		{ name: "Marcos", age: 23, colors: [ { color: "red" }, { color: "blue" } ] }
-	]
-});
-
-// document.body.innerHTML=str;
-console.log(str);
-
-/*
-// var parts = parse_merge_fields("this my {users " + "<div>{first_name}</div><div>{last_name}</div>\n} string and merge: {merge}", "{", "}");
-// var parts = parse_merge_fields("this my field: {merge}", "{", "}");
-
-// var aa = render_merge_fields(parts, {
-	// merge: "hi",
-	// users: [
-		// { first_name: "Marcos", last_name: "Minond" },
-		// { first_name: "Andres", last_name: "Minond" }
-	// ]
-// });
-
-
-// console.log("DONE, %o made this: %s", parts, aa);
-*/
-
-
-
-
-
-
