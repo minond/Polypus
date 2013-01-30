@@ -297,3 +297,30 @@
 		render_merge_fields: render_merge_fields
 	};
 })(this);
+
+/**
+ * "repeater" operator
+ */
+Template.config.operator["*"] = function(template, fields) {
+	var str = [], val = fields[ template.field ];
+
+	while (val--) {
+		str.push(this.render_merge_fields(template, fields));
+	}
+
+	return str.join("");
+};
+
+/**
+ * save to cache
+ */
+Template.config.operator["[<#]"] = function(template, fields) {
+	return fields[ "__cache_" + template.field ] = fields[ template.field ]();
+};
+
+/**
+ * output cache
+ */
+Template.config.operator["[#>]"] = function(template, fields) {
+	return fields[ "__cache_" + template.field ];
+};
