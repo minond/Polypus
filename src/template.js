@@ -208,8 +208,7 @@
 	 * @return CompiledTemplate[]
 	 */
 	Template.load = function(holder) {
-		var par, el, tpl, tpls = [], els = holder.getElementsByTagName("script");
-		var bind = "template:bind", bindto;
+		var bindto, par, el, tpl, tpls = [], els = holder.getElementsByTagName("script");
 
 		for (var i = 0, len = els.length; i < els.length; i++) {
 			el = els[ i ];
@@ -219,14 +218,14 @@
 				tpl = new Template(el.innerHTML, par);
 				tpls.push(tpl);
 
-				if (el.dataset[ bind ]) {
-					bindto = eval(el.dataset[ bind ]);
+				if (el.dataset.template_bind) {
+					bindto = eval(el.dataset.template_bind);
 					el.type += "/read";
 					i--;
 
-					if (bindto.prototype) {
+					if (bindto instanceof Collection) {
 						par.innerHTML = tpl.render({
-							list: bindto.all()
+							list: bindto.items
 						});
 					}
 					else {
@@ -259,10 +258,16 @@
 	Template.prototype.bind = function(thing, action) {
 		var template = this;
 
-		if (thing.prototype) {
-			thing.observe("set", "*", function() {
+		if (thing instanceof Collection) {
+			thing.observe("add", function() {
 				action(template.render({
-					list: this.constructor.all()
+					list: this.items
+				}), this, thing, template);
+			});
+
+			thing.observe("change", function() {
+				action(template.render({
+					list: this.items
 				}), this, thing, template);
 			});
 		}

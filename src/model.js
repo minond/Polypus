@@ -1,7 +1,16 @@
 (function(global) {
 	"use strict";
 
-	var Model, ModelEnumerableValue, save_action, has_props, foreach, trigger, gen_id;
+	var Model, ModelEnumerableValue, save_action, has_props, foreach, trigger,
+		gen_id, bind_standard_getter, bind_standard_setter, bind_enumerable_setter,
+		bind_standard_function_call, bind_all_properties, known_actions;
+
+	known_actions = [ "get", "set", "before", "after" ];
+
+	/**
+	 * @var ModelEnumerableValue
+	 */
+	ModelEnumerableValue = function() {};
 
 	/**
 	 * generate a random id
@@ -12,6 +21,151 @@
 	};
 
 	/**
+	 * binds a getter
+	 * @param Model base
+	 * @param string prop
+	 * @param object observing
+	 */
+	bind_standard_getter = function(base, prop, observing) {
+		base.prototype[ "get_" + prop ] = function () {
+			// instance
+			trigger.apply(this, ["get", prop]);
+
+			// global
+			trigger.apply({
+				observing: observing,
+				__self: this
+			}, ["get", prop]);
+
+			return this[ prop ];
+		};
+	};
+
+	/**
+	 * binds a setter
+	 * @param Model base
+	 * @param string prop
+	 * @param object observing
+	 */
+	bind_standard_setter = function(base, prop, observing) {
+		base.prototype[ "set_" + prop ] = function (val) {
+			this[ prop ] = val;
+
+			// instance
+			trigger.apply(this, ["set", prop, val]);
+
+			// global
+			trigger.apply({
+				observing: observing,
+				__self: this
+			}, ["set", prop, val]);
+		};
+	};
+
+	/**
+	 * binds a setter to an enum property
+	 * @param Model base
+	 * @param string prop
+	 * @param object observing
+	 */
+	bind_enumerable_setter = function(base, prop, observing) {
+		base.prototype[ "set_" + prop ] = function (val) {
+			if (val in base[ prop ]) {
+				this[ prop ] = val;
+
+				// instance
+				trigger.apply(this, ["set", prop, val]);
+
+				// global
+				trigger.apply({
+					observing: observing,
+					__self: this
+				}, ["set", prop, val]);
+			} else {
+				throw new Error("Invalid value");
+			}
+		};
+	};
+
+	/**
+	 * saves an observable function
+	 * @param Model base
+	 * @param string prop
+	 * @param object props
+	 * @param object observing
+	 */
+	bind_standard_function_call = function(base, prop, props, observing) {
+		base.prototype[ prop ] = function () {
+			var ret,
+				args = Array.prototype.slice.call(arguments, 0);
+
+			args.unshift(prop);
+			args.unshift("before");
+
+			// instance
+			trigger.apply(this, args);
+
+			// global
+			trigger.apply({
+				observing: observing,
+				__self: this
+			}, args);
+
+			args.shift();
+			args.shift();
+			ret = props[ prop ].apply(this, args);
+
+			// instance
+			trigger.apply(this, ["after", prop, ret]);
+
+			// global
+			trigger.apply({
+				observing: observing,
+				__self: this
+			}, ["after", prop, ret]);
+
+			return ret;
+		};
+	};
+
+	/**
+	 * @param Model base
+	 * @param object props
+	 * @param object observing
+	 * @return Model
+	 */
+	bind_all_properties = function(base, props, observing) {
+		var thisprop;
+
+		for (var prop in props) {
+			base.prop_list.push(prop);
+			thisprop = props[ prop ];
+
+			(function (prop, thisprop) {
+				if (thisprop instanceof Function) {
+					// public function
+					bind_standard_function_call(base, prop, props, observing);
+				} else {
+					if (thisprop instanceof ModelEnumerableValue) {
+						// enum values
+						base[ prop ] = thisprop;
+						base.prototype[ prop ] = null;
+						bind_enumerable_setter(base, prop, observing);
+						bind_standard_getter(base, prop, observing);
+					} else {
+						// standard values
+						base.prototype[ prop ] = thisprop;
+						bind_standard_setter(base, prop, observing);
+						bind_standard_getter(base, prop, observing);
+					}
+				}
+			})(prop, thisprop);
+		}
+
+		return base;
+	};
+
+	/**
 	 * stores an action in storage
 	 * @param object storage
 	 * @param string namespace
@@ -19,6 +173,10 @@
 	 * @param function action
 	 */
 	save_action = function(storage, namespace, property, action) {
+		if (known_actions.indexOf(namespace) === -1) {
+			throw new Error("Unknown action \"" + namespace + "\"");
+		}
+
 		if (!(namespace in storage)) {
 			storage[ namespace ] = {};
 		}
@@ -93,7 +251,7 @@
 	 * @return ModelInstance
 	 */
 	Model = global.Model = function Model(props) {
-		var observing = {}, all = [], base;
+		var observing = {}, base;
 
 		/**
 		 * model construcor
@@ -101,7 +259,9 @@
 		 */
 		base = function ModelInstance(props) {
 			var setter;
+
 			this.observing = {};
+			this.__id = gen_id();
 
 			if (props) {
 				for (var prop in props) {
@@ -109,31 +269,6 @@
 					if (this[ setter ] && this[ setter ] instanceof Function) {
 						this[ setter ](props[ prop ]);
 					}
-				}
-			}
-
-			this.__id = gen_id();
-			all.push(this);
-		};
-
-		/**
-		 * models track all of their instances. this returns an array to all
-		 * created instances so far
-		 * @return ModelInstance[]
-		 */
-		base.all = function() {
-			return all;
-		};
-
-		/**
-		 * model instance search
-		 * @param string id
-		 * @return ModelInstance
-		 */
-		base.id = function(id) {
-			for (var i = 0, len = all.length; i < len; i++) {
-				if (all[ i ].__id === id) {
-					return all[ i ];
 				}
 			}
 		};
@@ -158,123 +293,14 @@
 			save_action(this.observing, namespace, property, action);
 		};
 
-		for (var prop in props) {
-			var thisprop = props[ prop ];
+		/**
+		 * reference to model properties
+		 * @var string[]
+		 */
+		base.prop_list = [];
 
-			(function (prop, thisprop) {
-				if (thisprop instanceof Function) {
-					// public function
-					base.prototype[ prop ] = function () {
-						var ret,
-							args = Array.prototype.slice.call(arguments, 0);
-
-						args.unshift(prop);
-						args.unshift("before");
-
-						// instance
-						trigger.apply(this, args);
-
-						// global
-						trigger.apply({
-							observing: observing,
-							__self: this
-						}, args);
-
-						args.shift();
-						args.shift();
-						ret = props[ prop ].apply(this, args);
-
-						// instance
-						trigger.apply(this, ["after", prop, ret]);
-
-						// global
-						trigger.apply({
-							observing: observing,
-							__self: this
-						}, ["after", prop, ret]);
-
-						return ret;
-					};
-				} else {
-					if (props[ prop ] instanceof ModelEnumerableValue) {
-						// value
-						base[ prop ] = props[ prop ];
-						base.prototype[ prop ] = null;
-
-						// setter
-						base.prototype[ "set_" + prop ] = function (val) {
-							if (val in base[ prop ]) {
-								this[ prop ] = val;
-
-								// instance
-								trigger.apply(this, ["set", prop, val]);
-
-								// global
-								trigger.apply({
-									observing: observing,
-									__self: this
-								}, ["set", prop, val]);
-							} else {
-								throw new Error("Invalid value");
-							}
-						};
-
-						// getter
-						base.prototype[ "get_" + prop ] = function () {
-							// instance
-							trigger.apply(this, ["get", prop]);
-
-							// global
-							trigger.apply({
-								observing: observing,
-								__self: this
-							}, ["get", prop]);
-
-							return this[ prop ];
-						};
-					} else {
-						// value
-						base.prototype[ prop ] = props[ prop ];
-
-						// setter
-						base.prototype[ "set_" + prop ] = function (val) {
-							this[ prop ] = val;
-
-							// instance
-							trigger.apply(this, ["set", prop, val]);
-
-							// global
-							trigger.apply({
-								observing: observing,
-								__self: this
-							}, ["set", prop, val]);
-						};
-
-						// getter
-						base.prototype[ "get_" + prop ] = function () {
-							// instance
-							trigger.apply(this, ["get", prop]);
-
-							// global
-							trigger.apply({
-								observing: observing,
-								__self: this
-							}, ["get", prop]);
-
-							return this[ prop ];
-						};
-					}
-				}
-			})(prop, thisprop);
-		}
-
-		return base;
+		return bind_all_properties(base, props, observing);
 	};
-
-	/**
-	 * @var ModelEnumerableValue
-	 */
-	ModelEnumerableValue = function() {};
 
 	/**
 	 * @param mixed list*
@@ -288,5 +314,21 @@
 		}
 
 		return options;
+	};
+
+	/**
+	 * for testing
+	 */
+	Model.api = {
+		save_action: save_action,
+		has_props: has_props,
+		foreach: foreach,
+		trigger: trigger,
+		gen_id: gen_id,
+		bind_standard_getter: bind_standard_getter,
+		bind_standard_setter: bind_standard_setter,
+		bind_enumerable_setter: bind_enumerable_setter,
+		bind_standard_function_call: bind_standard_function_call,
+		bind_all_properties: bind_all_properties
 	};
 })(this);
