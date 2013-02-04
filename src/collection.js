@@ -1,7 +1,7 @@
 (function(global) {
 	"use strict";
 
-	var Collection, generate_get_functions, known_actions;
+	var Collection, generate_search_functions, known_actions;
 
 	known_actions = [ "add", "new", "change" ];
 
@@ -9,13 +9,19 @@
 	 * @param Collection collection
 	 * @param Model model
 	 */
-	generate_get_functions = function(collection, model) {
+	generate_search_functions = function(collection, model) {
 		for (var i = 0, len = model.prop_list.length; i < len; i++) {
 			(function(prop) {
 				collection[ "get_by_" + prop ] = function(val) {
 					var search = {};
 					search[ prop ] = val;
-					return collection.gets(search);
+					return collection.get(search);
+				};
+
+				collection[ "find_by_" + prop ] = function(val) {
+					var search = {};
+					search[ prop ] = val;
+					return collection.find(search);
 				};
 			})(model.prop_list[ i ]);
 		}
@@ -29,7 +35,7 @@
 		this.of = model;
 		this.items = [];
 		this.events = [];
-		generate_get_functions(this, model);
+		generate_search_functions(this, model);
 	};
 
 	/**
@@ -84,14 +90,14 @@
 	 * @return ModelInstance
 	 */
 	Collection.prototype.get = function(instance) {
-		return this.gets(instance)[0];
+		return this.find(instance)[0];
 	};
 
 	/**
 	 * @param mixed Object|ModelInstance instance
 	 * @return ModelInstance[]
 	 */
-	Collection.prototype.gets = function(instance) {
+	Collection.prototype.find = function(instance) {
 		var match = false, matches = [];
 
 		if (instance instanceof this.of) {

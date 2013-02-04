@@ -286,7 +286,11 @@
 		open: "{",
 		close: "}",
 		esc: "\\",
-		operator: {}
+		operator: {},
+		load: {
+			auto: true,
+			from: document
+		}
 	};
 
 	/**
@@ -329,3 +333,14 @@ Template.config.operator["[<#]"] = function(template, fields) {
 Template.config.operator["[#>]"] = function(template, fields) {
 	return fields[ "__cache_" + template.field ];
 };
+
+/**
+ * template auto-loader
+ */
+window.addEventListener("load", function() {
+// document.addEventListener("DOMContentLoaded", function() {
+	if (Template.config.load.auto) {
+		Template.load(Template.config.load.from);
+	}
+// }, false);
+});
