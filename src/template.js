@@ -3,7 +3,29 @@
 
 	var Template, get_merge_field_label, get_merge_field_operator,
 		get_merge_field_contents, get_fieldless_string, has_merge_fields,
-		parse_merge_fields, render_merge_fields;
+		parse_merge_fields, render_merge_fields, cleanup_template_str,
+		parse_bindto_string, bindtos;
+
+	/**
+	 * possbile bindto options
+	 * @var object
+	 */
+	bindtos = {
+		MODEL: "model",
+		COLLECTION: "collection"
+	};
+
+	/**
+	 * removes placeholder templates strings
+	 * @param string
+	 * @return string
+	 */
+	cleanup_template_str = function(str) {
+		return str
+			.replace(/x-placeholder-/g, "")
+			.replace(/\<!--placeholder/g, "")
+			.replace(/placeholder--\>/g, "");
+	};
 
 	/**
 	 * returns a string's label. i.e. {num* count} => count
@@ -18,7 +40,7 @@
 	 * @return string
 	 */
 	get_merge_field_operator = function(str) {
-		return get_merge_field_contents(str).split(/(\W+)/)[1] || "";
+		return get_merge_field_contents(str).split(/(\W+.?)\s{0,}/)[1] || "";
 	};
 
 	/**
@@ -49,8 +71,8 @@
 	};
 
 	/**
-	 * TODO: this is removing any whitespace after the merge field, but should be
-	 * limited to just space characters.
+	 * TODO: this is removing any whitespace after the merge field, but should
+	 * be limited to just space characters.
 	 * @param string field
 	 * @param string str
 	 * @return string
@@ -61,6 +83,23 @@
 			field.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&") +
 			"\\s{0,}"), ""
 		);
+	};
+
+	/**
+	 * parse a bindto string:
+	 * "collection:self:Ships" => self.Ships collection
+	 * @param string str
+	 * @param object gscope
+	 * @return object
+	 */
+	parse_bindto_string = function(str, gscope) {
+		var info = str.split(":");
+		return {
+			bindto: gscope && gscope[ info[1] ][ info[2] ],
+			type: info[0],
+			scope: info[1],
+			item: info[2]
+		};
 	};
 
 	/**
@@ -82,7 +121,6 @@
 
 			if (ch === esc && (next === open || next === close)) {
 				// escaped delimeter, save and skip next time
-				// debugger;
 				parts[ parts.length - 1 ] += next;
 				i++;
 				continue;
@@ -110,6 +148,7 @@
 				sub = parse_merge_fields(str.substring(pos, i), open, close, esc);
 				sub.field = get_merge_field_label(sub.raw);
 				sub.operator = get_merge_field_operator(sub.raw);
+				sub.single = sub.raw === sub.field;
 				sub.compiled[0] = get_fieldless_string(
 					sub.field + sub.operator,
 					sub.compiled[0]
@@ -175,7 +214,7 @@
 	 */
 	Template = global.Template = function CompiledTemplate(str, fields) {
 		var contents = parse_merge_fields(
-			str,
+			cleanup_template_str(str),
 			Template.config.open,
 			Template.config.close,
 			Template.config.esc
@@ -184,6 +223,7 @@
 		if (this instanceof Template) {
 			this.contents = contents;
 			this.output = fields;
+			this.last_render = null;
 		} else {
 			return render_merge_fields(contents, fields);
 		}
@@ -194,7 +234,7 @@
 	 * @return string
 	 */
 	Template.prototype.render = function(fields) {
-		var str = render_merge_fields(this.contents, fields);
+		var str = this.last_render = render_merge_fields(this.contents, fields);
 
 		if (this.output && this.output instanceof Node) {
 			this.output.innerHTML = str;
@@ -204,44 +244,13 @@
 	};
 
 	/**
-	 * @param Node holder
-	 * @return CompiledTemplate[]
+	 * check if a template (rendered content) has changed
+	 * @param mixed string|Object|Model
+	 * @return boolean
 	 */
-	Template.load = function(holder) {
-		var bindto, par, el, tpl, tpls = [], els = holder.getElementsByTagName("script");
-
-		for (var i = 0, len = els.length; i < els.length; i++) {
-			el = els[ i ];
-
-			if (el.type === "text/x-template") {
-				par = el.parentNode;
-				tpl = new Template(el.innerHTML, par);
-				tpls.push(tpl);
-
-				if (el.dataset.template_bind) {
-					bindto = eval(el.dataset.template_bind);
-					el.type += "/read";
-					i--;
-
-					if (bindto instanceof Collection) {
-						par.innerHTML = tpl.render({
-							list: bindto.items
-						});
-					}
-					else {
-						par.innerHTML = tpl.render(bindto);
-					}
-
-					(function(par) {
-						tpl.bind(bindto, function(str) {
-							par.innerHTML = str;
-						});
-					})(par);
-				}
-			}
-		}
-
-		return tpls;
+	Template.prototype.has_changed = function(info) {
+		var str = typeof info === "string" ? info : this.render(info);
+		return this.last_render === info;
 	};
 
 	/**
@@ -270,13 +279,87 @@
 					list: this.items
 				}), this, thing, template);
 			});
-		}
-		else {
+		} else {
 			thing.observe("set", "*", function() {
 				action(template.render(this), this, thing, template);
 			});
 		}
+
+		return this;
 	};
+
+	/**
+	 * @param string url
+	 * @param function cb
+	 * @return mixed null|CompiledTemplate
+	 */
+	Template.request = function(url, cb) {
+		var xhr = new XMLHttpRequest;
+
+		xhr.open("GET", url, !!cb);
+		xhr.send(null);
+		xhr.onreadystatechange = function() {
+			switch (xhr.readyState) {
+				case 4:
+					if (cb instanceof Function) {
+						cb(xhr, new Template(xhr.responseText));
+					}
+			}
+		};
+
+		return cb ? null : new Template(xhr.responseText);
+	};
+
+	/**
+	 * @param Node holder
+	 * @return CompiledTemplate[]
+	 */
+	Template.load = function(holder) {
+		var i, len, par, el, tpl, tpls = [], info, max = 100,
+			els = holder.getElementsByTagName(Template.config.load.tag);
+
+		for (i = 0, len = els.length; max-- && i < len; i++) {
+			if (!els[0].dataset.bindto) {
+				continue;
+			}
+
+			el = els[0];
+			par = el.parentNode;
+			tpl = new Template(el.innerHTML, par);
+			info = parse_bindto_string(el.dataset.bindto, global);
+
+			if (info.bindto) {
+				if (info.type === bindtos.COLLECTION) {
+					par.innerHTML = tpl.render({ list: info.bindto.items });
+				} else if (info.type === bindtos.MODEL) {
+					par.innerHTML = tpl.render(info.bindto);
+				} else {
+					// what?
+					continue;
+				}
+
+				(function(par) {
+					tpls.push(tpl.bind(info.bindto, function(str) {
+						par.innerHTML = str;
+					}));
+				})(par);
+			}
+		}
+
+		return tpls;
+	};
+
+	/**
+	 * holds templates automatically loaded
+	 * @var CompiledTemplate[]
+	 */
+	Template.__auto_loaded__ = null;
+
+	/**
+	 * used to identify where the update request came from
+	 * @var Node
+	 */
+	Template.trigger = null;
 
 	/**
 	 * configuration settings
@@ -288,13 +371,75 @@
 		esc: "\\",
 		operator: {},
 		load: {
+			hide: true,
 			auto: true,
-			from: document
+			from: document,
+			tag: "template"
 		}
 	};
 
 	/**
-	 * for testing
+	 * "repeater" operator
+	 */
+	Template.config.operator["*"] = function(template, fields) {
+		var str = [], val = fields[ template.field ];
+
+		while (val--) {
+			str.push(this.render_merge_fields(template, fields));
+		}
+
+		return str.join("");
+	};
+
+	/**
+	 * save to cache
+	 */
+	Template.config.operator["[<#]"] = function(template, fields) {
+		return fields[ "__cache_" + template.field ] =
+			fields[ template.field ]();
+	};
+
+	/**
+	 * output cache
+	 */
+	Template.config.operator["[#>]"] = function(template, fields) {
+		return fields[ "__cache_" + template.field ];
+	};
+
+	/**
+	 * default value operator
+	 */
+	Template.config.operator["?"] = function(template, fields) {
+		return fields[ template.field ] ||
+			this.render_merge_fields(template, fields);
+	};
+
+	/**
+	 * required value operator
+	 */
+	Template.config.operator["!"] = function(template, fields) {
+		return fields[ template.field ] ?
+			this.render_merge_fields(template, fields) : "";
+	};
+
+	/**
+	 * flip value operator
+	 */
+	Template.config.operator["!!"] = function(template, fields) {
+		return !fields[ template.field ] ?
+			this.render_merge_fields(template, fields) : "";
+	};
+
+	/**
+	 * "if greater than one" operator
+	 */
+	Template.config.operator[">1"] = function(template, fields) {
+		return fields[ template.field ] > 1 ?
+			this.render_merge_fields(template, fields) : "";
+	};
+
+	/**
+	 * for testing and operators
 	 */
 	Template.api = {
 		get_merge_field_contents: get_merge_field_contents,
@@ -303,44 +448,42 @@
 		get_fieldless_string: get_fieldless_string,
 		has_merge_fields: has_merge_fields,
 		parse_merge_fields: parse_merge_fields,
-		render_merge_fields: render_merge_fields
+		render_merge_fields: render_merge_fields,
+
+		// not tested:
+		cleanup_template_str: cleanup_template_str,
+		parse_bindto_string: parse_bindto_string
 	};
+
+	/**
+	 * template auto-loader
+	 */
+	if (window && window.addEventListener) {
+		window.addEventListener("load", function() {
+			var templates;
+
+			if (Template.config.load.hide) {
+				templates = Template.config.load.from
+					.querySelectorAll(Template.config.load.tag);
+
+				for (var i = 0, len = templates.length; i < len; i++) {
+					templates[ i ].style.display = "none";
+				}
+			}
+
+			if (Template.config.load.auto) {
+				Template.__auto_loaded__ = Template.load(Template.config.load.from);
+			}
+		});
+	}
 })(this);
 
-/**
- * "repeater" operator
- */
-Template.config.operator["*"] = function(template, fields) {
-	var str = [], val = fields[ template.field ];
-
-	while (val--) {
-		str.push(this.render_merge_fields(template, fields));
-	}
-
-	return str.join("");
+/*
+var parse_function_arguments = function(func) {
+	return func.toString()
+		.match(/\((.{0,}?)\)/)[1]
+		.split(",")
+		.filter(function(arg) { return !!arg; })
+		.map(function(arg) { return arg.trim(); });
 };
-
-/**
- * save to cache
- */
-Template.config.operator["[<#]"] = function(template, fields) {
-	return fields[ "__cache_" + template.field ] = fields[ template.field ]();
-};
-
-/**
- * output cache
- */
-Template.config.operator["[#>]"] = function(template, fields) {
-	return fields[ "__cache_" + template.field ];
-};
-
-/**
- * template auto-loader
- */
-window.addEventListener("load", function() {
-// document.addEventListener("DOMContentLoaded", function() {
-	if (Template.config.load.auto) {
-		Template.load(Template.config.load.from);
-	}
-// }, false);
-});
+*/

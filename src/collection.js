@@ -1,29 +1,39 @@
 (function(global) {
 	"use strict";
 
-	var Collection, generate_search_functions, known_actions;
-
-	known_actions = [ "add", "new", "change" ];
+	var Collection, generate_search_function, trigger,
+		known_actions = [ "add", "new", "change" ];
 
 	/**
 	 * @param Collection collection
 	 * @param Model model
 	 */
-	generate_search_functions = function(collection, model) {
+	generate_search_function = function(collection, model, func, prefix) {
 		for (var i = 0, len = model.prop_list.length; i < len; i++) {
 			(function(prop) {
-				collection[ "get_by_" + prop ] = function(val) {
+				collection[ prefix + prop ] = function(val) {
 					var search = {};
 					search[ prop ] = val;
-					return collection.get(search);
-				};
-
-				collection[ "find_by_" + prop ] = function(val) {
-					var search = {};
-					search[ prop ] = val;
-					return collection.find(search);
+					return collection[ func ](search);
 				};
 			})(model.prop_list[ i ]);
+		}
+	};
+
+	/**
+	 * @param Model instance
+	 * @param string action
+	 * @param array args
+	 */
+	trigger = function(instance, action, args) {
+		var events, i, len;
+
+		if (action in instance.events) {
+			events = instance.events[ action ];
+
+			for (i = 0, len = events.length; i < len; i++) {
+				events[ i ].apply(instance, args || []);
+			}
 		}
 	};
 
@@ -35,7 +45,8 @@
 		this.of = model;
 		this.items = [];
 		this.events = [];
-		generate_search_functions(this, model);
+		generate_search_function(this, model, "get", "get_by_");
+		generate_search_function(this, model, "find", "find_by_");
 	};
 
 	/**
@@ -52,7 +63,7 @@
 	 */
 	Collection.prototype.create = function(props) {
 		var instance = new this.of(props);
-		this.trigger("new", instance);
+		trigger(this, "new", [instance]);
 		this.add(instance);
 		return instance;
 	};
@@ -69,11 +80,11 @@
 		}
 
 		this.items.push(instance);
-		this.trigger("add", instance);
+		trigger(this, "add", [instance]);
 
 		// bind listeners
 		instance.observe("set", "*", function() {
-			that.trigger("change", [ this ]);
+			trigger(that, "change", [this]);
 		});
 	};
 
@@ -94,24 +105,31 @@
 	};
 
 	/**
+	 * @param string id
+	 * @return ModelInstance
+	 */
+	Collection.prototype.get_by_id = function(id) {
+		return this.get({ __id: id });
+	};
+
+	/**
 	 * @param mixed Object|ModelInstance instance
 	 * @return ModelInstance[]
 	 */
 	Collection.prototype.find = function(instance) {
-		var match = false, matches = [];
+		var match = false, matches = [], i, len, prop;
 
 		if (instance instanceof this.of) {
-			for (var i = 0, len = this.items.length; i < len; i++) {
+			for (i = 0, len = this.items.length; i < len; i++) {
 				if (this.items[ i ] === instance) {
 					matches.push(this.items[ i ]);
 				}
 			}
-		}
-		else if (instance instanceof Object) {
-			for (var i = 0, len = this.items.length; i < len; i++) {
+		} else if (instance instanceof Object) {
+			for (i = 0, len = this.items.length; i < len; i++) {
 				match = true;
 
-				for (var prop in instance) {
+				for (prop in instance) {
 					if (instance[ prop ] !== this.items[ i ][ prop ]) {
 						match = false;
 						break;
@@ -122,17 +140,11 @@
 					matches.push(this.items[ i ]);
 				}
 			}
+		} else {
+			throw new Error("Invalid search parameter");
 		}
 
 		return matches;
-	};
-
-	/**
-	 * @param string id
-	 * @return mixed boolean|ModelInstance
-	 */
-	Collection.prototype.get_by_id = function(id) {
-		return this.get({ __id: id });
 	};
 
 	/**
@@ -150,22 +162,5 @@
 		}
 
 		this.events[ what ].push(action);
-	};
-
-	/**
-	 * event trigger
-	 * @param string what
-	 * @param array args
-	 */
-	Collection.prototype.trigger = function(what, args) {
-		var events;
-
-		if (what in this.events) {
-			events = this.events[ what ];
-
-			for (var i = 0, len = events.length; i < len; i++) {
-				events[ i ].apply(this, args || []);
-			}
-		}
 	};
 })(this);

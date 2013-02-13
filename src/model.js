@@ -3,9 +3,8 @@
 
 	var Model, ModelEnumerableValue, save_action, has_props, foreach, trigger,
 		gen_id, bind_standard_getter, bind_standard_setter, bind_enumerable_setter,
-		bind_standard_function_call, bind_all_properties, known_actions;
-
-	known_actions = [ "get", "set", "before", "after" ];
+		bind_standard_function_call, bind_all_properties, trigger_action,
+		apply_all_properties, known_actions = [ "get", "set", "before", "after" ];
 
 	/**
 	 * @var ModelEnumerableValue
@@ -21,6 +20,24 @@
 	};
 
 	/**
+	 * sets model values
+	 * @param Model you
+	 * @param object props
+	 */
+	apply_all_properties = function(you, props) {
+		var prop, setter;
+
+		if (props) {
+			for (prop in props) {
+				setter = "set_" + prop;
+				if (you[ setter ] && you[ setter ] instanceof Function) {
+					you[ setter ](props[ prop ]);
+				}
+			}
+		}
+	};
+
+	/**
 	 * binds a getter
 	 * @param Model base
 	 * @param string prop
@@ -28,14 +45,10 @@
 	 */
 	bind_standard_getter = function(base, prop, observing) {
 		base.prototype[ "get_" + prop ] = function () {
-			// instance
-			trigger.apply(this, ["get", prop]);
-
-			// global
-			trigger.apply({
+			trigger_action(["get", prop], [this, {
 				observing: observing,
 				__self: this
-			}, ["get", prop]);
+			}]);
 
 			return this[ prop ];
 		};
@@ -50,15 +63,10 @@
 	bind_standard_setter = function(base, prop, observing) {
 		base.prototype[ "set_" + prop ] = function (val) {
 			this[ prop ] = val;
-
-			// instance
-			trigger.apply(this, ["set", prop, val]);
-
-			// global
-			trigger.apply({
+			trigger_action(["set", prop, val], [this, {
 				observing: observing,
 				__self: this
-			}, ["set", prop, val]);
+			}]);
 		};
 	};
 
@@ -73,14 +81,10 @@
 			if (val in base[ prop ]) {
 				this[ prop ] = val;
 
-				// instance
-				trigger.apply(this, ["set", prop, val]);
-
-				// global
-				trigger.apply({
+				trigger_action(["set", prop, val], [this, {
 					observing: observing,
 					__self: this
-				}, ["set", prop, val]);
+				}])
 			} else {
 				throw new Error("Invalid value");
 			}
@@ -96,33 +100,22 @@
 	 */
 	bind_standard_function_call = function(base, prop, props, observing) {
 		base.prototype[ prop ] = function () {
-			var ret,
-				args = Array.prototype.slice.call(arguments, 0);
+			var ret, args = Array.prototype.slice.call(arguments, 0);
 
 			args.unshift(prop);
 			args.unshift("before");
-
-			// instance
-			trigger.apply(this, args);
-
-			// global
-			trigger.apply({
+			trigger_action(args, [this, {
 				observing: observing,
 				__self: this
-			}, args);
+			}]);
 
 			args.shift();
 			args.shift();
 			ret = props[ prop ].apply(this, args);
-
-			// instance
-			trigger.apply(this, ["after", prop, ret]);
-
-			// global
-			trigger.apply({
+			trigger_action(["after", prop, ret], [this, {
 				observing: observing,
 				__self: this
-			}, ["after", prop, ret]);
+			}]);
 
 			return ret;
 		};
@@ -135,9 +128,9 @@
 	 * @return Model
 	 */
 	bind_all_properties = function(base, props, observing) {
-		var thisprop;
+		var thisprop, prop;
 
-		for (var prop in props) {
+		for (prop in props) {
 			base.prop_list.push(prop);
 			thisprop = props[ prop ];
 
@@ -195,13 +188,12 @@
 	 * @return boolean
 	 */
 	has_props = function(storage, props) {
-		var check = storage;
+		var check = storage, i, len;
 
-		for (var i = 0, len = props.length; i < len; i++) {
+		for (i = 0, len = props.length; i < len; i++) {
 			if (props[ i ] in check) {
 				check = check[ props[ i ] ];
-			}
-			else {
+			} else {
 				return false;
 			}
 		}
@@ -246,6 +238,17 @@
 	};
 
 	/**
+	 * trigger an action on a list of observers
+	 * @param array args
+	 * @param array instances
+	 */
+	trigger_action = function(args, instances) {
+		for (var i = 0, len = instances.length; i < len; i++) {
+			trigger.apply(instances[i], args);
+		}
+	};
+
+	/**
 	 * create a new model object
 	 * @param object props
 	 * @return ModelInstance
@@ -258,19 +261,9 @@
 		 * @param props
 		 */
 		base = function ModelInstance(props) {
-			var setter;
-
 			this.observing = {};
 			this.__id = gen_id();
-
-			if (props) {
-				for (var prop in props) {
-					setter = "set_" + prop;
-					if (this[ setter ] && this[ setter ] instanceof Function) {
-						this[ setter ](props[ prop ]);
-					}
-				}
-			}
+			apply_all_properties(this, props);
 		};
 
 		/**
@@ -294,11 +287,32 @@
 		};
 
 		/**
+		 * property setter
+		 * @param string prop
+		 * @param mixed val
+		 * @return mixed
+		 */
+		base.prototype.set = function(prop, val) {
+			return this[ "set_" + prop ](val);
+		};
+
+		/**
+		 * property getter
+		 * @param string prop
+		 * @return mixed
+		 */
+		base.prototype.get = function(prop) {
+			return this[ "get_" + prop ]();
+		};
+
+		/**
 		 * reference to model properties
+		 * @see bind_all_properties
 		 * @var string[]
 		 */
 		base.prop_list = [];
 
+		// yeah...
 		return bind_all_properties(base, props, observing);
 	};
 
@@ -307,9 +321,9 @@
 	 * @return ModelEnumerableValue
 	 */
 	Model.enum = function(list) {
-		var options = new ModelEnumerableValue;
+		var options = new ModelEnumerableValue, i, len;
 
-		for (var i = 0, len = arguments.length; i < len; i++) {
+		for (i = 0, len = arguments.length; i < len; i++) {
 			options[ arguments[ i ] ] = arguments[ i ];
 		}
 
@@ -329,6 +343,10 @@
 		bind_standard_setter: bind_standard_setter,
 		bind_enumerable_setter: bind_enumerable_setter,
 		bind_standard_function_call: bind_standard_function_call,
-		bind_all_properties: bind_all_properties
+		bind_all_properties: bind_all_properties,
+
+		// not tested:
+		trigger_action: trigger_action,
+		apply_all_properties: apply_all_properties
 	};
 })(this);
