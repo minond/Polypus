@@ -2,21 +2,21 @@
 	"use strict";
 
 	var Collection, generate_search_function, trigger,
-		known_actions = [ "add", "new", "change" ];
+		known_actions = [ "add", "new", "change", "remove" ];
 
 	/**
 	 * @param Collection collection
 	 * @param Model model
 	 */
 	generate_search_function = function(collection, model, func, prefix) {
-		for (var i = 0, len = model.prop_list.length; i < len; i++) {
+		for (var i = 0, len = model.prop_list.props.length; i < len; i++) {
 			(function(prop) {
 				collection[ prefix + prop ] = function(val) {
 					var search = {};
 					search[ prop ] = val;
 					return collection[ func ](search);
 				};
-			})(model.prop_list[ i ]);
+			})(model.prop_list.props[ i ]);
 		}
 	};
 
@@ -69,31 +69,59 @@
 	};
 
 	/**
-	 * add an item
+	 * add an item. returns true if instance was successfully added
 	 * @param ModelInstance instance
+	 * @param boolean allow_duplicate
+	 * @return boolean
 	 */
-	Collection.prototype.add = function(instance) {
-		var that = this;
+	Collection.prototype.add = function(instance, allow_duplicate) {
+		var that = this, added = false;
 
 		if (!(instance instanceof this.of)) {
 			throw new Error("Invalid model type");
 		}
 
-		this.items.push(instance);
-		trigger(this, "add", [instance]);
+		if (allow_duplicate || !this.has(instance)) {
+			added = true;
+			this.items.push(instance);
+			trigger(this, "add", [instance]);
 
-		// bind listeners
-		instance.observe("set", "*", function() {
-			trigger(that, "change", [this]);
-		});
+			// bind listeners
+			instance.observe("set", "*", function() {
+				trigger(that, "change", [this]);
+			});
+		}
+
+		return added;
 	};
 
 	/**
-	 * @param midex Object|ModelInstance instance
+	 * @param mixed Object|ModelInstance instance
 	 * @return mixed boolean
 	 */
 	Collection.prototype.has = function(instance) {
 		return !!this.get(instance);
+	};
+
+	/**
+	 * removes an item from the list. returns true if something was removed.
+	 * @param midex Object|ModelInstance instance
+	 * @return boolean
+	 */
+	Collection.prototype.remove = function(instance) {
+		var removed = false, orig_len = this.items.length;
+		instance = this.get(instance);
+
+		this.items = this.items.filter(function(item) {
+			return item !== instance;
+		});
+
+		if (orig_len !== this.items.length) {
+			removed = true;
+			trigger(this, "remove");
+		}
+
+		return removed;
 	};
 
 	/**

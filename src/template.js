@@ -279,6 +279,12 @@
 					list: this.items
 				}), this, thing, template);
 			});
+
+			thing.observe("remove", function() {
+				action(template.render({
+					list: this.items
+				}), this, thing, template);
+			});
 		} else {
 			thing.observe("set", "*", function() {
 				action(template.render(this), this, thing, template);

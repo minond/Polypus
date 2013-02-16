@@ -1,3 +1,8 @@
+/**
+ * missing tests:
+ * Collection.add(<instance>, <allow_duplicate!>)
+ * Collection.remove(<instance>)
+ */
 describe("collections", function() {
 	"use strict";
 
@@ -39,9 +44,9 @@ describe("collections", function() {
 	it("generates search functions for every property in the model", function() {
 		var prop, finds, gets, has = false;
 
-		for (var i = 0, len = TestModel.prop_list.length; i < len; i++) {
+		for (var i = 0, len = TestModel.prop_list.props.length; i < len; i++) {
 			has = true;
-			prop = TestModel.prop_list[ i ];
+			prop = TestModel.prop_list.props[ i ];
 			gets = TestCollection[ "find_by_" + prop ];
 			finds = TestCollection[ "get_by_" + prop ];
 

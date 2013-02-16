@@ -227,6 +227,26 @@ describe("models", function() {
 		});
 	});
 
+	describe("special functions", function() {
+		it("should generate plain js objects with the model's values", function() {
+			var i, len, raw = model.clone(),
+				props = TestModel.prop_list.props;
+
+			for (i = 0, len = props.length; i < len; i++) {
+				expect(raw[ props[ i ] ]).toBe(model[ props[ i ] ]);
+			}
+		});
+
+		it("should be able to clone objects", function() {
+			var i, len, copy = model.clone(),
+				props = TestModel.prop_list.props;
+
+			for (i = 0, len = props.length; i < len; i++) {
+				expect(copy[ props[ i ] ]).toBe(model[ props[ i ] ]);
+			}
+		});
+	});
+
 	describe("enumerator values", function() {
 		beforeEach(function() {
 			TestModel = Model({

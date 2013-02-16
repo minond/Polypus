@@ -46,7 +46,7 @@
 	bind_standard_getter = function(base, prop, observing) {
 		base.prototype[ "get_" + prop ] = function () {
 			trigger_action(["get", prop], [this, {
-				observing: observing,
+				__observing: observing,
 				__self: this
 			}]);
 
@@ -64,7 +64,7 @@
 		base.prototype[ "set_" + prop ] = function (val) {
 			this[ prop ] = val;
 			trigger_action(["set", prop, val], [this, {
-				observing: observing,
+				__observing: observing,
 				__self: this
 			}]);
 		};
@@ -82,7 +82,7 @@
 				this[ prop ] = val;
 
 				trigger_action(["set", prop, val], [this, {
-					observing: observing,
+					__observing: observing,
 					__self: this
 				}])
 			} else {
@@ -105,7 +105,7 @@
 			args.unshift(prop);
 			args.unshift("before");
 			trigger_action(args, [this, {
-				observing: observing,
+				__observing: observing,
 				__self: this
 			}]);
 
@@ -113,7 +113,7 @@
 			args.shift();
 			ret = props[ prop ].apply(this, args);
 			trigger_action(["after", prop, ret], [this, {
-				observing: observing,
+				__observing: observing,
 				__self: this
 			}]);
 
@@ -131,14 +131,16 @@
 		var thisprop, prop;
 
 		for (prop in props) {
-			base.prop_list.push(prop);
+			base.prop_list.all.push(prop);
 			thisprop = props[ prop ];
 
 			(function (prop, thisprop) {
 				if (thisprop instanceof Function) {
 					// public function
+					base.prop_list.funcs.push(prop);
 					bind_standard_function_call(base, prop, props, observing);
 				} else {
+					base.prop_list.props.push(prop);
 					if (thisprop instanceof ModelEnumerableValue) {
 						// enum values
 						base[ prop ] = thisprop;
@@ -223,15 +225,15 @@
 			args = Array.prototype.slice.call(arguments, 2);
 
 		// instance property subscriber
-		if (has_props(this.observing, [ namespace, property ])) {
-			foreach(this.observing[ namespace ][ property ], function (i, action) {
+		if (has_props(this.__observing, [ namespace, property ])) {
+			foreach(this.__observing[ namespace ][ property ], function (i, action) {
 				action.apply(me, args);
 			});
 		}
 
 		// instance namespace subscriber
-		if (has_props(this.observing, [ namespace, "*" ])) {
-			foreach(this.observing[ namespace ][ "*" ], function (i, action) {
+		if (has_props(this.__observing, [ namespace, "*" ])) {
+			foreach(this.__observing[ namespace ][ "*" ], function (i, action) {
 				action.apply(me, args);
 			});
 		}
@@ -261,8 +263,8 @@
 		 * @param props
 		 */
 		base = function ModelInstance(props) {
-			this.observing = {};
 			this.__id = gen_id();
+			this.__observing = {};
 			apply_all_properties(this, props);
 		};
 
@@ -283,7 +285,7 @@
 		 * @param function action
 		 */
 		base.prototype.observe = function(namespace, property, action) {
-			save_action(this.observing, namespace, property, action);
+			save_action(this.__observing, namespace, property, action);
 		};
 
 		/**
@@ -306,11 +308,30 @@
 		};
 
 		/**
+		 * returns a plain object with all the model's properties
+		 * @return object
+		 */
+		base.prototype.raw = function() {
+			var that = this, raw = {};
+			foreach(this.constructor.prop_list.props, function(i, prop) {
+				raw[ prop ] = that[ prop ];
+			});
+			return raw;
+		};
+
+		/**
+		 * @return ModelInstance
+		 */
+		base.prototype.clone = function() {
+			return new base(this.raw());
+		};
+
+		/**
 		 * reference to model properties
 		 * @see bind_all_properties
 		 * @var string[]
 		 */
-		base.prop_list = [];
+		base.prop_list = { props: [], funcs: [], all: [] };
 
 		// yeah...
 		return bind_all_properties(base, props, observing);
