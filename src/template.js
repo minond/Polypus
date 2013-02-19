@@ -339,29 +339,35 @@
 	 * @param function action
 	 */
 	Template.prototype.bind = function(thing, action) {
-		var template = this;
+		var template = this, trigger_redraw = function(model) {
+			model.constructor.__specials__.__redraw__.apply(model);
+		};
 
 		if (thing instanceof Collection) {
-			thing.observe("add", function() {
+			thing.observe("add", function(model) {
 				action(template.render({
 					list: this.items
 				}), this, thing, template);
+				trigger_redraw(model);
 			});
 
-			thing.observe("change", function() {
+			thing.observe("change", function(model) {
 				action(template.render({
 					list: this.items
 				}), this, thing, template);
+				trigger_redraw(model);
 			});
 
-			thing.observe("remove", function() {
+			thing.observe("remove", function(model) {
 				action(template.render({
 					list: this.items
 				}), this, thing, template);
+				trigger_redraw(model);
 			});
 		} else {
 			thing.observe("set", "*", function() {
 				action(template.render(this), this, thing, template);
+				trigger_redraw(this);
 			});
 		}
 

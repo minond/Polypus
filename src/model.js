@@ -5,7 +5,7 @@
 		gen_id, bind_standard_getter, bind_standard_setter, bind_enumerable_setter,
 		bind_standard_function_call, bind_all_properties, trigger_action,
 		apply_all_properties, known_actions = [ "get", "set", "before", "after" ],
-		special_functions = [ "__init__" ];
+		special_functions = [ "__init__", "__redraw__" ];
 
 	/**
 	 * @var ModelEnumerableValue
