@@ -255,4 +255,14 @@
 
 		this.events[ what ].push(action);
 	};
+
+	/**
+	 * collection iterator
+	 * @param function action(iterator, ModelInstance)
+	 */
+	Collection.prototype.foreach = function(action) {
+		for (var i = 0, len = this.items.length; i < len; i++) {
+			action.call(this, i, this.items[ i ]);
+		}
+	};
 })(this);

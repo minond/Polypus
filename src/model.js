@@ -264,13 +264,18 @@
 	/**
 	 * create a new model object
 	 * @param object props
+	 * @param object config
 	 * @return ModelInstance
 	 */
-	Model = global.Model = function Model(props) {
+	Model = global.Model = function Model(props, config) {
 		var observing = {}, base;
 
 		if (!props) {
 			props = {};
+		}
+
+		if (!config) {
+			config = {};
 		}
 
 		/**
@@ -357,7 +362,14 @@
 		});
 
 		// yeah...
-		return bind_all_properties(base, props, observing);
+		bind_all_properties(base, props, observing);
+
+		// configuration
+		if (config.autoinit) {
+			base[ config.autoinit ] = new base;
+		}
+
+		return base;
 	};
 
 	/**

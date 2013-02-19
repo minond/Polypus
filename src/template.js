@@ -348,21 +348,30 @@
 				action(template.render({
 					list: this.items
 				}), this, thing, template);
-				trigger_redraw(model);
+
+				this.foreach(function(i, model) {
+					trigger_redraw(model);
+				});
 			});
 
 			thing.observe("change", function(model) {
 				action(template.render({
 					list: this.items
 				}), this, thing, template);
-				trigger_redraw(model);
+
+				this.foreach(function(i, model) {
+					trigger_redraw(model);
+				});
 			});
 
 			thing.observe("remove", function(model) {
 				action(template.render({
 					list: this.items
 				}), this, thing, template);
-				trigger_redraw(model);
+
+				this.foreach(function(i, model) {
+					trigger_redraw(model);
+				});
 			});
 		} else {
 			thing.observe("set", "*", function() {
@@ -401,9 +410,12 @@
 	 * @return CompiledTemplate[]
 	 */
 	Template.load = function(holder) {
-		var i, len, par, el, tpl, tpls = [], html, info, max = 100,
-			els = Array.prototype.splice.call(
-				holder.getElementsByTagName(Template.config.load.tag), 0);
+		var i, len, par, el, tpl, tpls = [], html, info, max = 100, els = [],
+			tmpels = holder.getElementsByTagName(Template.config.load.tag);
+
+		for (i = 0, len = tmpels.length; i < len; i++) {
+			els[ i ] = tmpels[ i ];
+		}
 
 		for (i = 0, len = els.length; max-- && i < len; i++) {
 			el = els[i];
