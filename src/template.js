@@ -421,14 +421,14 @@
 			el = els[i];
 			par = el.parentNode;
 
+			if (el.dataset.load) {
+				tpl = Template.request(el.dataset.load);
+			} else {
+				tpl = new Template(el.innerHTML);
+			}
+
 			if (el.dataset.bindto) {
 				info = parse_bindto_string(el.dataset.bindto, global);
-
-				if (el.dataset.load) {
-					tpl = Template.request(el.dataset.load);
-				} else {
-					tpl = new Template(el.innerHTML);
-				}
 
 				if (par.children.length !== 1) {
 					// are we the only child?
