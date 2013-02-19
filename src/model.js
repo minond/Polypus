@@ -119,6 +119,14 @@
 
 			return ret;
 		};
+
+		base.prototype[ prop ].valueOf = function() {
+			return props[ prop ].valueOf();
+		};
+
+		base.prototype[ prop ].toString = function() {
+			return props[ prop ].toString();
+		};
 	};
 
 	/**

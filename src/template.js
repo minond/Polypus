@@ -4,7 +4,8 @@
 	var Template, get_merge_field_label, get_merge_field_operator,
 		get_merge_field_contents, get_fieldless_string, has_merge_fields,
 		parse_merge_fields, render_merge_fields, cleanup_template_str,
-		parse_bindto_string, bindtos;
+		add_missing_props, render_compiled_string, parse_bindto_string, bindtos,
+		apply_output_to_node, dataset;
 
 	/**
 	 * possbile bindto options
@@ -13,6 +14,46 @@
 	bindtos = {
 		MODEL: "model",
 		COLLECTION: "collection"
+	};
+
+	/**
+	 * "dataset" helper
+	 * @param Node node
+	 * @param string key
+	 * @param mixed value
+	 */
+	dataset = (function() {
+		var cache = {};
+		return function(node, key, value) {
+			var val, hash = node.dataset.sethash;
+
+			if (value !== undefined) {
+				// set
+				if (!hash) {
+					hash = Math.random();
+					cache[ hash ] = {};
+					node.dataset.sethash = hash;
+				}
+
+				val = cache[ hash ][ key ] = value;
+			} else if (hash) {
+				// get
+				val = cache[ hash ][ key ];
+			}
+
+			return val
+		};
+	})();
+
+	/**
+	 * @param Node node
+	 * @param string html
+	 * @param string type
+	 * @param mixed Collection|ModelInstance item
+	 */
+	apply_output_to_node = function(node, html, type, item) {
+		node.innerHTML = html;
+		dataset(node, type, item);
 	};
 
 	/**
@@ -113,7 +154,7 @@
 	 */
 	parse_merge_fields = function(str, open, close, esc) {
 		var strlen, i, ch, next, sub, subm, field, bracket = null,
-			pos = 0, parts = [""];
+			pos = 0, parts = [""], fields = [];
 
 		for (strlen = str.length, i = 0; i < strlen; i++) {
 			ch = str[i];
@@ -155,10 +196,50 @@
 				);
 
 				parts.push(sub, "");
+				fields.push(sub.field);
 			}
 		}
 
-		return { raw: str, compiled: parts };
+		return {
+			raw: str,
+			compiled: parts,
+			fields: fields
+		};
+	};
+
+	/**
+	 * @param string[] fields
+	 * @param object holder
+	 */
+	add_missing_props = function(fields, holder) {
+		var copy = {}, i, len, prop;
+
+		// originals
+		for (prop in holder) {
+			copy[ prop ] = holder[ prop ];
+		}
+
+		// missing
+		for (i = 0, len = fields.length; i < len; i++) {
+			if (!(fields[ i ] in copy)) {
+				copy[ fields[ i ] ] = holder[ fields[ i ] ];
+			}
+		}
+
+		return copy;
+	};
+
+	/**
+	 * calls render_merge_fields with a full fields holder object
+	 * @param array cstr
+	 * @param object fields
+	 * @param object operators
+	 * @return string
+	 */
+	render_compiled_string = function(cstr, fields, operators) {
+		return render_merge_fields(cstr, add_missing_props(
+			cstr.fields, fields
+		), operators);
 	};
 
 	/**
@@ -195,7 +276,7 @@
 							));
 						} else if (inner_cur instanceof Array) {
 							for (j = 0, inner_len = inner_cur.length; j < inner_len; j++) {
-								str.push(render_merge_fields(cur, inner_cur[ j ]));
+								str.push(render_compiled_string(cur, inner_cur[ j ]));
 							}
 						}
 					}
@@ -222,10 +303,9 @@
 
 		if (this instanceof Template) {
 			this.contents = contents;
-			this.output = fields;
 			this.last_render = null;
 		} else {
-			return render_merge_fields(contents, fields);
+			return render_compiled_string(contents, fields);
 		}
 	};
 
@@ -234,13 +314,7 @@
 	 * @return string
 	 */
 	Template.prototype.render = function(fields) {
-		var str = this.last_render = render_merge_fields(this.contents, fields);
-
-		if (this.output && this.output instanceof Node) {
-			this.output.innerHTML = str;
-		}
-
-		return str;
+		return this.last_render = render_compiled_string(this.contents, fields || {});
 	};
 
 	/**
@@ -321,34 +395,52 @@
 	 * @return CompiledTemplate[]
 	 */
 	Template.load = function(holder) {
-		var i, len, par, el, tpl, tpls = [], info, max = 100,
-			els = holder.getElementsByTagName(Template.config.load.tag);
+		var i, len, par, el, tpl, tpls = [], html, info, max = 100,
+			els = Array.prototype.splice.call(
+				holder.getElementsByTagName(Template.config.load.tag), 0);
 
 		for (i = 0, len = els.length; max-- && i < len; i++) {
-			if (!els[0].dataset.bindto) {
-				continue;
-			}
-
-			el = els[0];
+			el = els[i];
 			par = el.parentNode;
-			tpl = new Template(el.innerHTML, par);
-			info = parse_bindto_string(el.dataset.bindto, global);
 
-			if (info.bindto) {
-				if (info.type === bindtos.COLLECTION) {
-					par.innerHTML = tpl.render({ list: info.bindto.items });
-				} else if (info.type === bindtos.MODEL) {
-					par.innerHTML = tpl.render(info.bindto);
+			if (el.dataset.bindto) {
+				info = parse_bindto_string(el.dataset.bindto, global);
+
+				if (el.dataset.load) {
+					tpl = Template.request(el.dataset.load);
 				} else {
-					// what?
-					continue;
+					tpl = new Template(el.innerHTML);
 				}
 
-				(function(par) {
-					tpls.push(tpl.bind(info.bindto, function(str) {
-						par.innerHTML = str;
-					}));
-				})(par);
+				if (par.children.length !== 1) {
+					// are we the only child?
+					// wrap template in something and use that as output holder
+				}
+
+				if (info.bindto) {
+					if (info.type === bindtos.COLLECTION) {
+						html = tpl.render({ list: info.bindto.items });
+					} else if (info.type === bindtos.MODEL) {
+						html = tpl.render(info.bindto);
+					} else {
+						// what?
+						continue;
+					}
+
+					(function(par, type) {
+						apply_output_to_node(par, html, type, info.bindto);
+						tpls.push(tpl.bind(info.bindto, function(str) {
+							apply_output_to_node(par, str, type, this);
+						}));
+					})(par, info.type);
+				}
+			} else {
+				// remove template node
+				el.remove();
+			}
+
+			if (el.dataset.name) {
+				Template.list[ el.dataset.name ] = tpl;
 			}
 		}
 
@@ -359,7 +451,7 @@
 	 * holds templates automatically loaded
 	 * @var CompiledTemplate[]
 	 */
-	Template.__auto_loaded__ = null;
+	Template.list = {};
 
 	/**
 	 * used to identify where the update request came from
@@ -391,7 +483,7 @@
 		var str = [], val = fields[ template.field ];
 
 		while (val--) {
-			str.push(this.render_merge_fields(template, fields));
+			str.push(this.render_compiled_string(template, fields));
 		}
 
 		return str.join("");
@@ -417,7 +509,7 @@
 	 */
 	Template.config.operator["?"] = function(template, fields) {
 		return fields[ template.field ] ||
-			this.render_merge_fields(template, fields);
+			this.render_compiled_string(template, fields);
 	};
 
 	/**
@@ -425,7 +517,7 @@
 	 */
 	Template.config.operator["!"] = function(template, fields) {
 		return fields[ template.field ] ?
-			this.render_merge_fields(template, fields) : "";
+			this.render_compiled_string(template, fields) : "";
 	};
 
 	/**
@@ -433,7 +525,7 @@
 	 */
 	Template.config.operator["!!"] = function(template, fields) {
 		return !fields[ template.field ] ?
-			this.render_merge_fields(template, fields) : "";
+			this.render_compiled_string(template, fields) : "";
 	};
 
 	/**
@@ -441,7 +533,7 @@
 	 */
 	Template.config.operator[">1"] = function(template, fields) {
 		return fields[ template.field ] > 1 ?
-			this.render_merge_fields(template, fields) : "";
+			this.render_compiled_string(template, fields) : "";
 	};
 
 	/**
@@ -457,6 +549,10 @@
 		render_merge_fields: render_merge_fields,
 
 		// not tested:
+		dataset: dataset,
+		apply_output_to_node: apply_output_to_node,
+		render_compiled_string: render_compiled_string,
+		add_missing_props: add_missing_props,
 		cleanup_template_str: cleanup_template_str,
 		parse_bindto_string: parse_bindto_string
 	};
@@ -478,7 +574,7 @@
 			}
 
 			if (Template.config.load.auto) {
-				Template.__auto_loaded__ = Template.load(Template.config.load.from);
+				Template.load(Template.config.load.from);
 			}
 		});
 	}

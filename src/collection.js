@@ -1,7 +1,7 @@
 (function(global) {
 	"use strict";
 
-	var Collection, generate_search_function, trigger,
+	var Collection, generate_search_function, trigger, query_model, apply_ret_info,
 		known_actions = [ "add", "new", "change", "remove" ];
 
 	/**
@@ -18,6 +18,63 @@
 				};
 			})(model.prop_list.props[ i ]);
 		}
+	};
+
+	/**
+	 * applies functions on a list of models
+	 * @param ModelInstance[] models
+	 * @param retinfo object
+	 * @return ModelInstance[]
+	 */
+	apply_ret_info = function(models, retinfo) {
+		var copy, val;
+
+		if (retinfo && retinfo instanceof Object) {
+			if ("$sort" in retinfo) {
+				val = retinfo.$sort;
+				copy = models.sort(function(a, b) {
+					if(a[ val ] == b[ val ])
+						return 0;
+					else if (a[ val ] > b[ val ])
+						return 1;
+					else
+						return -1;
+				});
+			}
+		} else {
+			copy = models;
+		}
+
+		return copy;
+	};
+
+	/**
+	 * model "query" check. ie: find({ len: { $lt: 3 } }) returns true for:
+	 * [{ len: 0 }, { len: 1 }, { len: 2 }]
+	 * @param string prop
+	 * @param query object
+	 * @param ModelInstance model
+	 * @return boolean
+	 */
+	query_model = function(prop, query, model) {
+		var match = false;
+
+		if ("$lt" in query) {
+			match = model[ prop ] < query.$lt;
+		} else if ("$gt" in query) {
+			match = model[ prop ] > query.$gt;
+		} else if ("$le" in query) {
+			match = model[ prop ] <= query.$le;
+		} else if ("$ge" in query) {
+			match = model[ prop ] >= query.$ge;
+		} else if ("$between" in query) {
+			match = model[ prop ] >= query.$between[0] &&
+				model[ prop ] <= query.$between[1];
+		} else if ("$like" in query) {
+			match = query.$like.test(model[ prop ]);
+		}
+
+		return match;
 	};
 
 	/**
@@ -141,10 +198,12 @@
 	};
 
 	/**
+	 * retinfo holds return information (ie sort, order)
 	 * @param mixed Object|ModelInstance instance
+	 * @param object retinfo
 	 * @return ModelInstance[]
 	 */
-	Collection.prototype.find = function(instance) {
+	Collection.prototype.find = function(instance, retinfo) {
 		var match = false, matches = [], i, len, prop;
 
 		if (instance instanceof this.of) {
@@ -158,7 +217,12 @@
 				match = true;
 
 				for (prop in instance) {
-					if (instance[ prop ] !== this.items[ i ][ prop ]) {
+					if (instance[ prop ] instanceof Object) {
+						match = query_model(
+							prop, instance[ prop ],
+							this.items[ i ]
+						);
+					} else if (instance[ prop ] !== this.items[ i ][ prop ]) {
 						match = false;
 						break;
 					}
@@ -172,7 +236,7 @@
 			throw new Error("Invalid search parameter");
 		}
 
-		return matches;
+		return apply_ret_info(matches, retinfo);
 	};
 
 	/**
