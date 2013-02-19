@@ -269,6 +269,10 @@
 	Model = global.Model = function Model(props) {
 		var observing = {}, base;
 
+		if (!props) {
+			props = {};
+		}
+
 		/**
 		 * model construcor
 		 * @param props

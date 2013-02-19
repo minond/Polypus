@@ -6,6 +6,10 @@ describe("models", function() {
 	beforeEach(function() {
 		TestModel = Model({
 			first_name: "",
+			init_called: false,
+			__init__: function() {
+				this.init_called = true;
+			},
 			func: function() {
 				return true;
 			},
@@ -43,6 +47,14 @@ describe("models", function() {
 
 		it("should not overwrite model functions", function() {
 			expect(model.func()).toBe(true);
+		});
+
+		it("should not add special functions", function() {
+			expect(!!model.__init__).toBe(false);
+		});
+
+		it("should call the constructor when initialized", function() {
+			expect(model.init_called).toBe(true);
 		});
 	});
 
