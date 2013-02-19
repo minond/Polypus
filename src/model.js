@@ -4,7 +4,8 @@
 	var Model, ModelEnumerableValue, save_action, has_props, foreach, trigger,
 		gen_id, bind_standard_getter, bind_standard_setter, bind_enumerable_setter,
 		bind_standard_function_call, bind_all_properties, trigger_action,
-		apply_all_properties, known_actions = [ "get", "set", "before", "after" ];
+		apply_all_properties, known_actions = [ "get", "set", "before", "after" ],
+		special_functions = [ "__init__" ];
 
 	/**
 	 * @var ModelEnumerableValue
@@ -145,8 +146,10 @@
 			(function (prop, thisprop) {
 				if (thisprop instanceof Function) {
 					// public function
-					base.prop_list.funcs.push(prop);
-					bind_standard_function_call(base, prop, props, observing);
+					if (special_functions.indexOf(prop) === -1) {
+						base.prop_list.funcs.push(prop);
+						bind_standard_function_call(base, prop, props, observing);
+					}
 				} else {
 					base.prop_list.props.push(prop);
 					if (thisprop instanceof ModelEnumerableValue) {
@@ -274,6 +277,7 @@
 			this.__id = gen_id();
 			this.__observing = {};
 			apply_all_properties(this, props);
+			base.__specials__.__init__.apply(this);
 		};
 
 		/**
@@ -340,6 +344,13 @@
 		 * @var string[]
 		 */
 		base.prop_list = { props: [], funcs: [], all: [] };
+
+		// special funcitons
+		base.__specials__ = {};
+		foreach(special_functions, function(i, func) {
+			base.__specials__[ func ] = func in props ?
+				props[ func ] : new Function;
+		});
 
 		// yeah...
 		return bind_all_properties(base, props, observing);
