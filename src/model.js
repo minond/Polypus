@@ -1,33 +1,36 @@
-(function(global) {
+(function(ns) {
 	"use strict";
 
-	var Model, ModelEnumerableValue, save_action, has_props, foreach, trigger,
-		gen_id, bind_standard_getter, bind_standard_setter, bind_enumerable_setter,
+	var Model, ModelEnumerableValue, adjutor, save_action, has_props, trigger,
+		bind_standard_getter, bind_standard_setter, bind_enumerable_setter,
 		bind_standard_function_call, bind_all_properties, trigger_action, extend,
 		apply_all_properties, known_actions = [ "get", "set", "before", "after" ],
 		special_functions = [ "__init__", "__redraw__" ];
+
+	/**
+	 * local copy
+	 * @var object
+	 */
+	adjutor = ns.adjutor;
 
 	/**
 	 * @var ModelEnumerableValue
 	 */
 	ModelEnumerableValue = function() {};
 
+	/**
+	 * object property extensions
+	 * @param object base
+	 * @param object[]
+	 */
 	extend = function(base, addons) {
-		foreach(addons, function(i, addon) {
+		adjutor.foreach(addons, function(i, addon) {
 			for (var prop in addon) {
 				if (!(prop in base)) {
 					base[ prop ] = addon[ prop ];
 				}
 			}
 		});
-	};
-
-	/**
-	 * generate a random id
-	 * @return string
-	 */
-	gen_id = function() {
-		return Math.random().toString().substr(3, 10) + Date.now();
 	};
 
 	/**
@@ -224,17 +227,6 @@
 		return true;
 	};
 
-	/**
-	 * for helper
-	 * @param array list
-	 * @param function action
-	 */
-	foreach = function(list, action) {
-		for (var i = 0, z = list.length; i < z; i++) {
-			action(i, list[ i ]);
-		}
-	};
-
 
 	/**
 	 * trigger all subscribers
@@ -247,14 +239,14 @@
 
 		// instance property subscriber
 		if (has_props(this.__observing, [ namespace, property ])) {
-			foreach(this.__observing[ namespace ][ property ], function (i, action) {
+			adjutor.foreach(this.__observing[ namespace ][ property ], function (i, action) {
 				action.apply(me, args);
 			});
 		}
 
 		// instance namespace subscriber
 		if (has_props(this.__observing, [ namespace, "*" ])) {
-			foreach(this.__observing[ namespace ][ "*" ], function (i, action) {
+			adjutor.foreach(this.__observing[ namespace ][ "*" ], function (i, action) {
 				action.apply(me, args);
 			});
 		}
@@ -278,7 +270,7 @@
 	 * @param object config
 	 * @return ModelInstance
 	 */
-	Model = global.Model = function Model(props, config) {
+	Model = ns.Model = function Model(props, config) {
 		var observing = {}, base, proto;
 
 		if (!props) {
@@ -294,7 +286,7 @@
 		 * @param props
 		 */
 		base = function ModelInstance(props) {
-			this.__id = gen_id();
+			this.__id = adjutor.uniq();
 			this.__observing = {};
 			apply_all_properties(this, props);
 			base.__specials__.__init__.apply(this);
@@ -320,11 +312,11 @@
 			var that = this;
 
 			if (namespace instanceof Array) {
-				foreach(namespace, function(i, namespace) {
+				adjutor.foreach(namespace, function(i, namespace) {
 					that.observe(namespace, property, action);
 				});
 			} else if (property instanceof Array) {
-				foreach(property, function(i, property) {
+				adjutor.foreach(property, function(i, property) {
 					that.observe(namespace, property, action);
 				});
 			} else {
@@ -357,7 +349,7 @@
 		 */
 		base.prototype.raw = function() {
 			var that = this, raw = {};
-			foreach(this.constructor.prop_list.props, function(i, prop) {
+			adjutor.foreach(this.constructor.prop_list.props, function(i, prop) {
 				raw[ prop ] = that[ prop ];
 			});
 			return raw;
@@ -400,7 +392,7 @@
 
 		// special funcitons
 		base.__specials__ = {};
-		foreach(special_functions, function(i, func) {
+		adjutor.foreach(special_functions, function(i, func) {
 			base.__specials__[ func ] = func in props ?
 				props[ func ] : new Function;
 		});
@@ -436,9 +428,7 @@
 	Model.api = {
 		save_action: save_action,
 		has_props: has_props,
-		foreach: foreach,
 		trigger: trigger,
-		gen_id: gen_id,
 		bind_standard_getter: bind_standard_getter,
 		bind_standard_setter: bind_standard_setter,
 		bind_enumerable_setter: bind_enumerable_setter,
@@ -450,4 +440,4 @@
 		trigger_action: trigger_action,
 		apply_all_properties: apply_all_properties
 	};
-})(this);
+})(Polypus);

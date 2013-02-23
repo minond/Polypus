@@ -1,46 +1,25 @@
-(function(global) {
+(function(ns, global) {
 	"use strict";
 
-	var binding, foreach, eventuum;
+	var binding, adjutor, eventuum;
 
 	/**
-	 * local copy of eventuum
+	 * local copy
+	 * @var object 
+	 */
+	adjutor = ns.adjutor;
+
+	/**
+	 * local copy
 	 * @var object
 	 */
-	eventuum = global.eventuum;
-
-	/**
-	 * for helper
-	 * @param array list
-	 * @param function action
-	 */
-	foreach = function(list, action) {
-		for (var i = 0, z = list.length; i < z; i++) {
-			action(i, list[ i ]);
-		}
-	};
+	eventuum = ns.eventuum;
 
 	/**
 	 * acts as a namespace
 	 * @var array
 	 */
-	binding = global.Template.config.load.binding = {};
-
-	/**
-	 * convert a data property to a dataset property. ie:
-	 * data-model-id = dataset.modelId
-	 * @param string data
-	 * @return string
-	 */
-	binding.data2prop = function(data) {
-		return data
-			// remove "data-" prefix
-			.replace(/^data-/, "")
-			// apply camel case
-			.replace(/((\w?)-)(\w)/g, function(whole, dash, prev, ch) {
-				return prev + ch.toUpperCase();
-			});
-	};
+	binding = ns.Template.config.load.binding = {};
 
 	/**
 	 * bind to string parses
@@ -87,13 +66,13 @@
 	binding.bind_models_in = function(el, propname) {
 		var node, selector, info, that = this;
 
-		foreach(el.querySelectorAll(
+		adjutor.foreach(el.querySelectorAll(
 			this.generate_selector.by_prop("*", propname)), function(i, el)
 		{
 			node = el.nodeName.toLowerCase();
 			selector = that.generate_selector.by_prop(node, propname);
 			info = that.parse_bind_string.model_info(
-				el.dataset[ that.data2prop(propname) ]);
+				el.dataset[ adjutor.data2prop(propname) ]);
 
 			// input value updates
 			eventuum.input(selector, function() {
@@ -157,11 +136,9 @@
 	};
 
 	// auto load, wait for document
-	if (window && window.addEventListener) {
-		window.addEventListener("load", function() {
-			if (binding.config.load.auto) {
-				binding.bind_all_in(binding.config.load.from);
-			}
-		});
-	}
-})(this);
+	adjutor.onload(function() {
+		if (binding.config.load.auto) {
+			binding.bind_all_in(binding.config.load.from);
+		}
+	});
+})(Polypus, this);

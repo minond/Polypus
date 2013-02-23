@@ -1,4 +1,4 @@
-(function(global) {
+(function(ns) {
 	"use strict";
 
 	var Template, get_merge_field_label, get_merge_field_operator,
@@ -235,7 +235,7 @@
 	 * @param object fields
 	 * @param mixed CompiledTemplate|string
 	 */
-	Template = global.Template = function CompiledTemplate(str, fields) {
+	Template = ns.Template = function CompiledTemplate(str, fields) {
 		var contents = parse_merge_fields(
 			cleanup_template_str(str),
 			Template.config.open,
@@ -375,14 +375,4 @@
 		cleanup_template_str: cleanup_template_str,
 		finish_compile_data_gather: finish_compile_data_gather
 	};
-})(this);
-
-/*
-var parse_function_arguments = function(func) {
-	return func.toString()
-		.match(/\((.{0,}?)\)/)[1]
-		.split(",")
-		.filter(function(arg) { return !!arg; })
-		.map(function(arg) { return arg.trim(); });
-};
-*/
+})(Polypus);

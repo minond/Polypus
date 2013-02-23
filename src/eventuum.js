@@ -1,27 +1,19 @@
-(function(global) {
+(function(ns) {
 	"use strict";
 
-	var eventuum, is;
+	var eventuum, adjutor;
 
 	/**
-	 * query checker
-	 * @param Node el
-	 * @param string selector
-	 * @return boolean
+	 * local copy
+	 * @var object
 	 */
-	is = function(el, selector) {
-		if (el.webkitMatchesSelector) {
-			return el.webkitMatchesSelector(selector);
-		} else if (el.mozMatchesSelector) {
-			return el.mozMatchesSelector(selector);
-		}
-	};
+	adjutor = ns.adjutor;
 
 	/**
 	 * just acts as a namespace
 	 * @var object
 	 */
-	eventuum = global.eventuum = {};
+	eventuum = ns.eventuum = {};
 
 	/**
 	 * event cache
@@ -42,7 +34,7 @@
 			for (i = 0, len = this.bound[ eventname ].length; i < len; i++) {
 				ev = this.bound[ eventname ][ i ];
 
-				if (is(node, ev.selector)) {
+				if (adjutor.is(node, ev.selector)) {
 					ev.action.call(node, event);
 				}
 			}
@@ -102,4 +94,4 @@
 			to: document
 		}
 	};
-})(this);
+})(Polypus);

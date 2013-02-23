@@ -1,8 +1,14 @@
-(function(global) {
+(function(ns) {
 	"use strict";
 
-	var Collection, generate_search_function, trigger, query_model, apply_ret_info,
-		known_actions = [ "add", "new", "change", "remove" ];
+	var Collection, adjutor, generate_search_function, trigger, query_model,
+		apply_ret_info, known_actions = [ "add", "new", "change", "remove" ];
+
+	/**
+	 * local copy
+	 * @var object
+	 */
+	adjutor = ns.adjutor;
 
 	/**
 	 * @param Collection collection
@@ -98,7 +104,7 @@
 	 * @param Model model
 	 * @return Collection
 	 */
-	Collection = global.Collection = function Collection(model) {
+	Collection = ns.Collection = function Collection(model) {
 		this.of = model;
 		this.items = [];
 		this.events = [];
@@ -250,7 +256,7 @@
 				this.observe(what[ i ], action);
 			}
 		} else {
-			if (known_actions.indexOf(what) === -1) {
+			if (!adjutor.in_array(what, known_actions)) {
 				throw new Error("Unknown action \"" + what + "\"");
 			}
 
@@ -271,4 +277,4 @@
 			action.call(this, i, this.items[ i ]);
 		}
 	};
-})(this);
+})(Polypus);

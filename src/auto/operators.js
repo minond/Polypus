@@ -1,5 +1,7 @@
-(function(global) {
+(function(ns) {
 	"use strict";
+
+	var Template = ns.Template;
 
 	if (Template.config.load.operators) {
 		/**
@@ -62,4 +64,4 @@
 				this.render_compiled_string(template, fields) : "";
 		};
 	}
-})(this);
+})(Polypus);
