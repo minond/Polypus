@@ -405,7 +405,7 @@
 			base[ config.autoinit ] = new base;
 		}
 
-		return base;
+		return config.singleton ? new base : base;
 	};
 
 	/**

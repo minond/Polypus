@@ -204,14 +204,15 @@
 				// regular string
 				str.push(cur);
 			} else if (cur instanceof Object) {
+				inner_cur = fields[ cur.field ];
+
 				if (cur.raw === cur.field) {
 					// single merge field
-					str.push(fields[ cur.field ]);
+					str.push(inner_cur instanceof Function ?
+						inner_cur.call(fields) : inner_cur);
 				} else {
 					// list merge field
 					if (cur.field in fields) {
-						inner_cur = fields[ cur.field ];
-
 						if (cur.operator && cur.operator in operators) {
 							str.push(operators[ cur.operator ].call(
 								Template.api, cur, fields
