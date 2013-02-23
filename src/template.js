@@ -4,57 +4,22 @@
 	var Template, get_merge_field_label, get_merge_field_operator,
 		get_merge_field_contents, get_fieldless_string, has_merge_fields,
 		parse_merge_fields, render_merge_fields, cleanup_template_str,
-		add_missing_props, render_compiled_string, parse_bindto_string, bindtos,
-		apply_output_to_node, dataset;
+		add_missing_props, render_compiled_string, finish_compile_data_gather;
 
 	/**
-	 * possbile bindto options
-	 * @var object
+	 * adds a few more properties to a compiled string object (field, operator,
+	 * single, compiled[0])
+	 * @param object holder
 	 */
-	bindtos = {
-		MODEL: "model",
-		COLLECTION: "collection"
-	};
-
-	/**
-	 * "dataset" helper
-	 * @param Node node
-	 * @param string key
-	 * @param mixed value
-	 */
-	dataset = (function() {
-		var cache = {};
-		return function(node, key, value) {
-			var val, hash = node.dataset.sethash;
-
-			if (value !== undefined) {
-				// set
-				if (!hash) {
-					hash = Math.random();
-					cache[ hash ] = {};
-					node.dataset.sethash = hash;
-				}
-
-				val = cache[ hash ][ key ] = value;
-			} else if (hash) {
-				// get
-				val = cache[ hash ][ key ];
-			}
-
-			return val
-		};
-	})();
-
-	/**
-	 * @param Node node
-	 * @param string html
-	 * @param string type
-	 * @param mixed Collection|ModelInstance item
-	 */
-	apply_output_to_node = function(node, html, type, item) {
-		node.innerHTML = html;
-		dataset(node, type, item);
-	};
+	finish_compile_data_gather = function(holder) {
+		holder.field = get_merge_field_label(holder.raw);
+		holder.operator = get_merge_field_operator(holder.raw);
+		holder.single = holder.raw === holder.field;
+		holder.compiled[0] = get_fieldless_string(
+			holder.field + holder.operator,
+			holder.compiled[0]
+		);
+	}
 
 	/**
 	 * removes placeholder templates strings
@@ -127,23 +92,6 @@
 	};
 
 	/**
-	 * parse a bindto string:
-	 * "collection:self:Ships" => self.Ships collection
-	 * @param string str
-	 * @param object gscope
-	 * @return object
-	 */
-	parse_bindto_string = function(str, gscope) {
-		var info = str.split(":");
-		return {
-			bindto: gscope && gscope[ info[1] ][ info[2] ],
-			type: info[0],
-			scope: info[1],
-			item: info[2]
-		};
-	};
-
-	/**
 	 * parses merge fields in a template string. returns an array open string
 	 * pieces that can be later use to merge in merge values.
 	 * @param string str
@@ -153,7 +101,7 @@
 	 * @return array
 	 */
 	parse_merge_fields = function(str, open, close, esc) {
-		var strlen, i, ch, next, sub, subm, field, bracket = null,
+		var strlen, substr, i, ch, next, sub, subm, field, bracket = null,
 			pos = 0, parts = [""], fields = [];
 
 		for (strlen = str.length, i = 0; i < strlen; i++) {
@@ -186,15 +134,9 @@
 			if (bracket === 0) {
 				// reset, save current group, and start new match group
 				bracket = null;
-				sub = parse_merge_fields(str.substring(pos, i), open, close, esc);
-				sub.field = get_merge_field_label(sub.raw);
-				sub.operator = get_merge_field_operator(sub.raw);
-				sub.single = sub.raw === sub.field;
-				sub.compiled[0] = get_fieldless_string(
-					sub.field + sub.operator,
-					sub.compiled[0]
-				);
-
+				substr = str.substring(pos, i);
+				sub = parse_merge_fields(substr, open, close, esc);
+				finish_compile_data_gather(sub);
 				parts.push(sub, "");
 				fields.push(sub.field);
 			}
@@ -344,27 +286,7 @@
 		};
 
 		if (thing instanceof Collection) {
-			thing.observe("add", function(model) {
-				action(template.render({
-					list: this.items
-				}), this, thing, template);
-
-				this.foreach(function(i, model) {
-					trigger_redraw(model);
-				});
-			});
-
-			thing.observe("change", function(model) {
-				action(template.render({
-					list: this.items
-				}), this, thing, template);
-
-				this.foreach(function(i, model) {
-					trigger_redraw(model);
-				});
-			});
-
-			thing.observe("remove", function(model) {
+			thing.observe(["add", "change", "remove"], function(model) {
 				action(template.render({
 					list: this.items
 				}), this, thing, template);
@@ -406,66 +328,6 @@
 	};
 
 	/**
-	 * @param Node holder
-	 * @return CompiledTemplate[]
-	 */
-	Template.load = function(holder) {
-		var i, len, par, el, tpl, tpls = [], html, info, max = 100, els = [],
-			tmpels = holder.getElementsByTagName(Template.config.load.tag);
-
-		for (i = 0, len = tmpels.length; i < len; i++) {
-			els[ i ] = tmpels[ i ];
-		}
-
-		for (i = 0, len = els.length; max-- && i < len; i++) {
-			el = els[i];
-			par = el.parentNode;
-
-			if (el.dataset.load) {
-				tpl = Template.request(el.dataset.load);
-			} else {
-				tpl = new Template(el.innerHTML);
-			}
-
-			if (el.dataset.bindto) {
-				info = parse_bindto_string(el.dataset.bindto, global);
-
-				if (par.children.length !== 1) {
-					// are we the only child?
-					// wrap template in something and use that as output holder
-				}
-
-				if (info.bindto) {
-					if (info.type === bindtos.COLLECTION) {
-						html = tpl.render({ list: info.bindto.items });
-					} else if (info.type === bindtos.MODEL) {
-						html = tpl.render(info.bindto);
-					} else {
-						// what?
-						continue;
-					}
-
-					(function(par, type) {
-						apply_output_to_node(par, html, type, info.bindto);
-						tpls.push(tpl.bind(info.bindto, function(str) {
-							apply_output_to_node(par, str, type, this);
-						}));
-					})(par, info.type);
-				}
-			} else {
-				// remove template node
-				el.remove();
-			}
-
-			if (el.dataset.name) {
-				Template.list[ el.dataset.name ] = tpl;
-			}
-		}
-
-		return tpls;
-	};
-
-	/**
 	 * holds templates automatically loaded
 	 * @var CompiledTemplate[]
 	 */
@@ -487,71 +349,12 @@
 		esc: "\\",
 		operator: {},
 		load: {
+			operators: true,
 			hide: true,
 			auto: true,
 			from: document,
 			tag: "template"
 		}
-	};
-
-	/**
-	 * "repeater" operator
-	 */
-	Template.config.operator["*"] = function(template, fields) {
-		var str = [], val = fields[ template.field ];
-
-		while (val--) {
-			str.push(this.render_compiled_string(template, fields));
-		}
-
-		return str.join("");
-	};
-
-	/**
-	 * save to cache
-	 */
-	Template.config.operator["[<#]"] = function(template, fields) {
-		return fields[ "__cache_" + template.field ] =
-			fields[ template.field ]();
-	};
-
-	/**
-	 * output cache
-	 */
-	Template.config.operator["[#>]"] = function(template, fields) {
-		return fields[ "__cache_" + template.field ];
-	};
-
-	/**
-	 * default value operator
-	 */
-	Template.config.operator["?"] = function(template, fields) {
-		return fields[ template.field ] ||
-			this.render_compiled_string(template, fields);
-	};
-
-	/**
-	 * required value operator
-	 */
-	Template.config.operator["!"] = function(template, fields) {
-		return fields[ template.field ] ?
-			this.render_compiled_string(template, fields) : "";
-	};
-
-	/**
-	 * flip value operator
-	 */
-	Template.config.operator["!!"] = function(template, fields) {
-		return !fields[ template.field ] ?
-			this.render_compiled_string(template, fields) : "";
-	};
-
-	/**
-	 * "if greater than one" operator
-	 */
-	Template.config.operator[">1"] = function(template, fields) {
-		return fields[ template.field ] > 1 ?
-			this.render_compiled_string(template, fields) : "";
 	};
 
 	/**
@@ -567,35 +370,11 @@
 		render_merge_fields: render_merge_fields,
 
 		// not tested:
-		dataset: dataset,
-		apply_output_to_node: apply_output_to_node,
 		render_compiled_string: render_compiled_string,
 		add_missing_props: add_missing_props,
 		cleanup_template_str: cleanup_template_str,
-		parse_bindto_string: parse_bindto_string
+		finish_compile_data_gather: finish_compile_data_gather
 	};
-
-	/**
-	 * template auto-loader
-	 */
-	if (window && window.addEventListener) {
-		window.addEventListener("load", function() {
-			var templates;
-
-			if (Template.config.load.hide) {
-				templates = Template.config.load.from
-					.querySelectorAll(Template.config.load.tag);
-
-				for (var i = 0, len = templates.length; i < len; i++) {
-					templates[ i ].style.display = "none";
-				}
-			}
-
-			if (Template.config.load.auto) {
-				Template.load(Template.config.load.from);
-			}
-		});
-	}
 })(this);
 
 /*

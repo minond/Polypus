@@ -3,7 +3,7 @@
 
 	var Model, ModelEnumerableValue, save_action, has_props, foreach, trigger,
 		gen_id, bind_standard_getter, bind_standard_setter, bind_enumerable_setter,
-		bind_standard_function_call, bind_all_properties, trigger_action,
+		bind_standard_function_call, bind_all_properties, trigger_action, extend,
 		apply_all_properties, known_actions = [ "get", "set", "before", "after" ],
 		special_functions = [ "__init__", "__redraw__" ];
 
@@ -11,6 +11,16 @@
 	 * @var ModelEnumerableValue
 	 */
 	ModelEnumerableValue = function() {};
+
+	extend = function(base, addons) {
+		foreach(addons, function(i, addon) {
+			for (var prop in addon) {
+				if (!(prop in base)) {
+					base[ prop ] = addon[ prop ];
+				}
+			}
+		});
+	};
 
 	/**
 	 * generate a random id
@@ -262,13 +272,14 @@
 	};
 
 	/**
-	 * create a new model object
+	 * create a new model object. confi options:
+	 * - mixin: ModelInstance[], add properties to base (new) Model
 	 * @param object props
 	 * @param object config
 	 * @return ModelInstance
 	 */
 	Model = global.Model = function Model(props, config) {
-		var observing = {}, base;
+		var observing = {}, base, proto;
 
 		if (!props) {
 			props = {};
@@ -301,12 +312,24 @@
 
 		/**
 		 * set an instance subscriber
-		 * @param string namespace
-		 * @param string property
+		 * @param mixed array|string namespace
+		 * @param mixed array|string property
 		 * @param function action
 		 */
 		base.prototype.observe = function(namespace, property, action) {
-			save_action(this.__observing, namespace, property, action);
+			var that = this;
+
+			if (namespace instanceof Array) {
+				foreach(namespace, function(i, namespace) {
+					that.observe(namespace, property, action);
+				});
+			} else if (property instanceof Array) {
+				foreach(property, function(i, property) {
+					that.observe(namespace, property, action);
+				});
+			} else {
+				save_action(this.__observing, namespace, property, action);
+			}
 		};
 
 		/**
@@ -348,11 +371,32 @@
 		};
 
 		/**
+		 * return new model of different type with current model's data
+		 * @param ModelInstance
+		 * @return ModelInstance
+		 */
+		base.prototype.cast = function(to) {
+			return new to(this.raw());
+		};
+
+		// trait/mixins
+		if (config.mixin) {
+			extend(props, config.mixin.map(function(model) {
+				return model.prop_list.raw;
+			}));
+		}
+
+		/**
 		 * reference to model properties
 		 * @see bind_all_properties
 		 * @var string[]
 		 */
-		base.prop_list = { props: [], funcs: [], all: [] };
+		base.prop_list = {
+			props: [],
+			funcs: [],
+			all: [],
+			raw: props
+		};
 
 		// special funcitons
 		base.__specials__ = {};
@@ -402,6 +446,7 @@
 		bind_all_properties: bind_all_properties,
 
 		// not tested:
+		extend: extend,
 		trigger_action: trigger_action,
 		apply_all_properties: apply_all_properties
 	};

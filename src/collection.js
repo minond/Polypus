@@ -241,19 +241,25 @@
 
 	/**
 	 * even listener
-	 * @param string what
+	 * @param mixed array|string what
 	 * @param function action
 	 */
 	Collection.prototype.observe = function(what, action) {
-		if (known_actions.indexOf(what) === -1) {
-			throw new Error("Unknown action \"" + what + "\"");
-		}
+		if (what instanceof Array) {
+			for (var i = 0, len = what.length; i < len; i++) {
+				this.observe(what[ i ], action);
+			}
+		} else {
+			if (known_actions.indexOf(what) === -1) {
+				throw new Error("Unknown action \"" + what + "\"");
+			}
 
-		if (!(what in this.events)) {
-			this.events[ what ] = [];
-		}
+			if (!(what in this.events)) {
+				this.events[ what ] = [];
+			}
 
-		this.events[ what ].push(action);
+			this.events[ what ].push(action);
+		}
 	};
 
 	/**
