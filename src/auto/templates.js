@@ -1,7 +1,7 @@
 (function(global) {
 	"use strict";
 
-	var bindtos, apply_output_to_node, parse_bindto_string, load_templates_in, dataset;
+	var bindtos, apply_output_to_node, parse_bindto_string, load_in, dataset;
 
 	/**
 	 * possbile bindto options
@@ -74,7 +74,7 @@
 	 * @param Node holder
 	 * @return CompiledTemplate[]
 	 */
-	load_templates_in = function(holder) {
+	load_in = global.Template.config.load.load_in = function(holder) {
 		var i, len, par, el, tpl, tpls = [], html, info, max = 100, els = [],
 			tmpels = holder.getElementsByTagName(Template.config.load.tag);
 
@@ -147,7 +147,7 @@
 			}
 
 			if (Template.config.load.auto) {
-				load_templates_in(Template.config.load.from);
+				load_in(Template.config.load.from);
 			}
 		});
 	}

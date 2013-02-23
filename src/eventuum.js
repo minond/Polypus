@@ -96,4 +96,10 @@
 	eventuum.input = function(selector, action) {
 		this.on("input", selector, action);
 	};
+
+	eventuum.config = {
+		bind: {
+			to: document
+		}
+	};
 })(this);
