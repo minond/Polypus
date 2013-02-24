@@ -42,6 +42,14 @@
 	};
 
 	/**
+	 * @param string evname
+	 * @return boolean
+	 */
+	eventuum.is_window_event = function(evname) {
+		return adjutor.in_array(evname, ["unload", "load"]);
+	};
+
+	/**
 	 * bind any event
 	 * @param string eventname
 	 * @param string selector
@@ -50,25 +58,31 @@
 	eventuum.on = function(eventname, selector, action) {
 		var that = this;
 
-		if (!(eventname in this.bound)) {
-			eventuum.config.bind.to.addEventListener(eventname, function(ev) {
-				var max = 200, el = ev.target;
+		if (this.is_window_event(eventname)) {
+			if (window && window.addEventListener) {
+				window.addEventListener(eventname, selector);
+			}
+		} else {
+			if (!(eventname in this.bound)) {
+				eventuum.config.bind.to.addEventListener(eventname, function(ev) {
+					var max = 200, el = ev.target;
 
-				// simulate bubbling
-				while (el && el !== document.body && max) {
-					max--;
-					that.trigger(eventname, el, ev);
-					el = el.parentNode;
-				}
+					// simulate bubbling
+					while (el && el !== document.body && max) {
+						max--;
+						that.trigger(eventname, el, ev);
+						el = el.parentNode;
+					}
+				});
+
+				this.bound[ eventname ] = [];
+			}
+
+			this.bound[ eventname ].push({
+				selector: selector,
+				action: action
 			});
-
-			this.bound[ eventname ] = [];
 		}
-
-		this.bound[ eventname ].push({
-			selector: selector,
-			action: action
-		});
 	};
 
 	/**
@@ -89,6 +103,26 @@
 		this.on("input", selector, action);
 	};
 
+	/**
+	 * self.on(load) shortcut
+	 * @param function action
+	 */
+	eventuum.load = function(action) {
+		this.on("load", action, null);
+	};
+
+	/**
+	 * self.on(unload) shortcut
+	 * @param function action
+	 */
+	eventuum.unload = function(action) {
+		this.on("unload", action, null);
+	};
+
+	/**
+	 * defaults
+	 * @var object
+	 */
 	eventuum.config = {
 		bind: {
 			to: document

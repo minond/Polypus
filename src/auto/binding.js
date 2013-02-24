@@ -50,8 +50,8 @@
 		user_event: function(str) {
 			var parts = str.split(".");
 			return {
-				item: parts[0],
-				func: parts[1]
+				item: parts[1] ? parts[0] : binding.config.ev_item.controller,
+				func: parts[1] ? parts[1] : parts[0]
 			};
 		}
 	}
@@ -116,10 +116,20 @@
 
 		eventuum.click(this.generate_selector.by_prop("*", propname), function(ev) {
 			obj = Template.data(this);
+			obj.controller = new Function; // Controller.data(this);
 
 			if (obj && (obj.model || obj.collection)) {
 				item = that.parse_bind_string.user_event(this.dataset.click);
-				obj.item[ item.func ](ev);
+
+				switch (item.item) {
+					case binding.config.ev_item.item:
+						obj.item[ item.func ](ev);
+						break;
+
+					case binding.config.ev_item.controller:
+					default:
+						obj.controller[ item.func ](ev, obj.item);
+				}
 			}
 		});
 	};
@@ -178,6 +188,10 @@
 			user: {
 				click: "data-click"
 			}
+		},
+		ev_item: {
+			item: "self",
+			controller: "controller"
 		}
 	};
 
