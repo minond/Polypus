@@ -138,7 +138,11 @@
 				val = cache[ hash ][ key ] = value;
 			} else if (hash) {
 				// get
-				val = cache[ hash ][ key ];
+				if (key === null) {
+					val = cache[ hash ];
+				} else {
+					val = cache[ hash ][ key ];
+				}
 			}
 
 			return val

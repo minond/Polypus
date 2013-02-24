@@ -354,7 +354,7 @@
 			hide: true,
 			auto: true,
 			from: document,
-			tag: "template"
+			tag: "view"
 		}
 	};
 

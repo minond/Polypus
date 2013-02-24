@@ -371,11 +371,22 @@
 			return new to(this.raw());
 		};
 
+		/**
+		 * @param Model type
+		 * @return boolean
+		 */
+		base.prototype.instance_of = function(type) {
+			return adjutor.in_array(type, base.__inherits__);
+		};
+
 		// trait/mixins
 		if (config.mixin) {
+			base.__inherits__ = config.mixin.concat(base);
 			extend(props, config.mixin.map(function(model) {
 				return model.prop_list.raw;
 			}));
+		} else {
+			base.__inherits__ = [ base ];
 		}
 
 		/**

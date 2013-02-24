@@ -140,7 +140,7 @@
 	Collection.prototype.add = function(instance, allow_duplicate) {
 		var that = this, added = false;
 
-		if (!(instance instanceof this.of)) {
+		if (!(instance.instance_of(this.of))) {
 			throw new Error("Invalid model type");
 		}
 
@@ -212,7 +212,7 @@
 	Collection.prototype.find = function(instance, retinfo) {
 		var match = false, matches = [], i, len, prop;
 
-		if (instance instanceof this.of) {
+		if (instance.instance_of && instance.instance_of(this.of)) {
 			for (i = 0, len = this.items.length; i < len; i++) {
 				if (this.items[ i ] === instance) {
 					matches.push(this.items[ i ]);

@@ -27,18 +27,31 @@
 	 */
 	binding.parse_bind_string = {
 		/**
-		 * parse model binding string (ie. "Clipper:name" => { model: Clipper,
+		 * parse model binding string (ie. "Clipper.name" => { model: Clipper,
 		 * prop: name, name: "Clipperj })
 		 * @param string str
 		 * @return object
 		 */
 		model_info: function(str) {
-			var parts = str.split(":");
+			var parts = str.split(".");
 			return {
 				prop: parts[1],
 				name: parts[0],
 				model: global[ parts[0] ],
 				raw: str
+			};
+		},
+
+		/**
+		 * parse event string (ie. "self.alert" => { item: self, func: alert })
+		 * @param string str
+		 * @return object
+		 */
+		user_event: function(str) {
+			var parts = str.split(".");
+			return {
+				item: parts[0],
+				func: parts[1]
 			};
 		}
 	}
@@ -94,6 +107,24 @@
 	};
 
 	/**
+	 * place a click event listener
+	 * @param Node el
+	 * @param string propname
+	 */
+	binding.bind_clicks = function(el, propname) {
+		var obj, item, that = this;
+
+		eventuum.click(this.generate_selector.by_prop("*", propname), function(ev) {
+			obj = Template.data(this);
+
+			if (obj && (obj.model || obj.collection)) {
+				item = that.parse_bind_string.user_event(this.dataset.click);
+				obj.item[ item.func ](ev);
+			}
+		});
+	};
+
+	/**
 	 * binds all elements in a document section
 	 * @param Node el
 	 */
@@ -115,6 +146,18 @@
 						}
 					}
 					break;
+
+				case this.config.props.user:
+					for (name in propnames) {
+						propname = propnames[ name ];
+
+						switch (propname) {
+							case propnames.click:
+								this.bind_clicks(el, propname);
+								break;
+						}
+					}
+					break;
 			}
 		}
 	};
@@ -131,6 +174,9 @@
 		props: {
 			bind: {
 				model: "data-bindto-model"
+			},
+			user: {
+				click: "data-click"
 			}
 		}
 	};
