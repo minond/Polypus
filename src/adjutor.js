@@ -58,6 +58,17 @@
 	};
 
 	/**
+	 * conver a string into a node tree
+	 * @param string str
+	 * @return Node
+	 */
+	adjutor.as_node = function(str) {
+		var el = document.createElement("div");
+		el.innerHTML = str;
+		return el.children[0];
+	};
+
+	/**
 	 * return array of funciton argument's names
 	 * @param Function func
 	 * @return array

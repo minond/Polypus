@@ -107,34 +107,6 @@
 	};
 
 	/**
-	 * place a click event listener
-	 * @param Node el
-	 * @param string propname
-	 */
-	binding.bind_clicks = function(el, propname) {
-		var obj, item, that = this;
-
-		eventuum.click(this.generate_selector.by_prop("*", propname), function(ev) {
-			obj = Template.data(this);
-			obj.controller = new Function; // Controller.data(this);
-
-			if (obj && (obj.model || obj.collection)) {
-				item = that.parse_bind_string.user_event(this.dataset.click);
-
-				switch (item.item) {
-					case binding.config.ev_item.item:
-						obj.item[ item.func ](ev);
-						break;
-
-					case binding.config.ev_item.controller:
-					default:
-						obj.controller[ item.func ](ev, obj.item);
-				}
-			}
-		});
-	};
-
-	/**
 	 * binds all elements in a document section
 	 * @param Node el
 	 */
@@ -156,18 +128,6 @@
 						}
 					}
 					break;
-
-				case this.config.props.user:
-					for (name in propnames) {
-						propname = propnames[ name ];
-
-						switch (propname) {
-							case propnames.click:
-								this.bind_clicks(el, propname);
-								break;
-						}
-					}
-					break;
 			}
 		}
 	};
@@ -184,9 +144,6 @@
 		props: {
 			bind: {
 				model: "data-bindto-model"
-			},
-			user: {
-				click: "data-click"
 			}
 		},
 		ev_item: {

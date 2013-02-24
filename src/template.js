@@ -286,7 +286,7 @@
 			model.constructor.__specials__.__redraw__.apply(model);
 		};
 
-		if (thing instanceof Collection) {
+		if (thing instanceof ns.Collection) {
 			thing.observe(["add", "change", "remove"], function(model) {
 				action(template.render({
 					list: this.items
