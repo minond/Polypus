@@ -4,7 +4,8 @@
 	var Model, ModelEnumerableValue, adjutor, save_action, has_props, trigger,
 		bind_standard_getter, bind_standard_setter, bind_enumerable_setter,
 		bind_standard_function_call, bind_all_properties, trigger_action, extend,
-		apply_all_properties, known_actions = [ "get", "set", "before", "after" ],
+		apply_all_properties, is_getset, bind_defined_getter, bind_defined_setter,
+		known_actions = [ "get", "set", "before", "after" ],
 		special_functions = [ "__init__", "__redraw__" ];
 
 	/**
@@ -17,6 +18,16 @@
 	 * @var ModelEnumerableValue
 	 */
 	ModelEnumerableValue = function() {};
+
+	/**
+	 * returns true is a give property specifies a getter and setter method
+	 * for a property
+	 * @param mixed prop
+	 * @return boolean
+	 */
+	is_getset = function(prop) {
+		return prop instanceof Object && ("$get" in prop || "$set" in prop);
+	};
 
 	/**
 	 * object property extensions
@@ -77,6 +88,41 @@
 	bind_standard_setter = function(base, prop, observing) {
 		base.prototype[ "set_" + prop ] = function (val) {
 			this[ prop ] = val;
+			trigger_action(["set", prop, val], [this, {
+				__observing: observing,
+				__self: this
+			}]);
+		};
+	};
+
+	/**
+	 * binds a getter
+	 * @param Model base
+	 * @param string prop
+	 * @param function method
+	 * @param object observing
+	 */
+	bind_defined_getter = function(base, prop, method, observing) {
+		base.prototype[ "get_" + prop ] = function () {
+			trigger_action(["get", prop], [this, {
+				__observing: observing,
+				__self: this
+			}]);
+
+			return method.call(this);
+		};
+	};
+
+	/**
+	 * binds a setter
+	 * @param Model base
+	 * @param string prop
+	 * @param function method
+	 * @param object observing
+	 */
+	bind_defined_setter = function(base, prop, method, observing) {
+		base.prototype[ "set_" + prop ] = function (val) {
+			method.call(this, val);
 			trigger_action(["set", prop, val], [this, {
 				__observing: observing,
 				__self: this
@@ -171,6 +217,20 @@
 						base.prototype[ prop ] = null;
 						bind_enumerable_setter(base, prop, observing);
 						bind_standard_getter(base, prop, observing);
+					} else if (is_getset(thisprop)) {
+						base.prototype[ prop ] = null;
+
+						if (thisprop.$set) {
+							bind_defined_setter(base, prop, thisprop.$set, observing);
+						} else {
+							bind_standard_setter(base, prop, observing);
+						}
+
+						if (thisprop.$get) {
+							bind_defined_getter(base, prop, thisprop.$get, observing);
+						} else {
+							bind_standard_getter(base, prop, observing);
+						}
 					} else {
 						// standard values
 						base.prototype[ prop ] = thisprop;
@@ -447,6 +507,9 @@
 		bind_all_properties: bind_all_properties,
 
 		// not tested:
+		is_getset: is_getset,
+		bind_defined_getter: bind_defined_getter,
+		bind_defined_setter: bind_defined_setter,
 		extend: extend,
 		trigger_action: trigger_action,
 		apply_all_properties: apply_all_properties
