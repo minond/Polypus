@@ -15,13 +15,13 @@
 	 * @param function action
 	 */
 	adjutor.foreach = function(list, action) {
-		if (list instanceof Array) {
-			for (var prop in list) {
-				action(prop, list[ prop ]);
-			}
-		} else {
+		if (list instanceof Array || list instanceof NodeList) {
 			for (var i = 0, z = list.length; i < z; i++) {
 				action(i, list[ i ]);
+			}
+		} else {
+			for (var prop in list) {
+				action(prop, list[ prop ]);
 			}
 		}
 	};

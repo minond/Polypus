@@ -9,14 +9,14 @@ describe("collections", function() {
 	var testmodel, TestModel, TestCollection;
 
 	beforeEach(function() {
-		TestModel = new Model({
+		TestModel = new Polypus.Model({
 			first_property: "",
 			second_property: "",
 			third_property: "",
 			fourth_property: ""
 		});
 
-		TestCollection = new Collection(TestModel);
+		TestCollection = new Polypus.Collection(TestModel);
 		testmodel = new TestModel;
 	});
 
@@ -30,7 +30,7 @@ describe("collections", function() {
 	});
 
 	it("does not allow models of other types to be added", function() {
-		var MyOtherModel = new Model,
+		var MyOtherModel = new Polypus.Model,
 			myothermodel = new MyOtherModel;
 
 		try {

@@ -4,7 +4,7 @@ describe("models", function() {
 	var TestModel, model;
 
 	beforeEach(function() {
-		TestModel = Model({
+		TestModel = Polypus.Model({
 			first_name: "",
 			init_called: false,
 			__init__: function() {
@@ -261,8 +261,8 @@ describe("models", function() {
 
 	describe("enumerator values", function() {
 		beforeEach(function() {
-			TestModel = Model({
-				item: Model.enum("one", "two", "three", "four")
+			TestModel = Polypus.Model({
+				item: Polypus.Model.enum("one", "two", "three", "four")
 			});
 
 			model = new TestModel;

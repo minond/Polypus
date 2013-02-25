@@ -1,7 +1,7 @@
 describe("templates", function() {
 	"use strict";
 
-	var api = Template.api, raw, compiled, result;
+	var api = Polypus.Template.api, raw, compiled, result;
 
 	beforeEach(function() {
 	});
