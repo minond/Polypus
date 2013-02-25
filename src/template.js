@@ -1,4 +1,4 @@
-(function(ns) {
+(function(Polypus) {
 	"use strict";
 
 	var Template, get_merge_field_label, get_merge_field_operator,
@@ -236,7 +236,7 @@
 	 * @param object fields
 	 * @param mixed CompiledTemplate|string
 	 */
-	Template = ns.Template = function CompiledTemplate(str, fields) {
+	Template = Polypus.Template = function CompiledTemplate(str, fields) {
 		var contents = parse_merge_fields(
 			cleanup_template_str(str),
 			Template.config.open,
@@ -286,7 +286,7 @@
 			model.constructor.__specials__.__redraw__.apply(model);
 		};
 
-		if (thing instanceof ns.Collection) {
+		if (thing instanceof Polypus.Collection) {
 			thing.observe(["add", "change", "remove"], function(model) {
 				action(template.render({
 					list: this.items

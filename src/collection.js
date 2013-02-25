@@ -1,4 +1,4 @@
-(function(ns) {
+(function(Polypus) {
 	"use strict";
 
 	var Collection, adjutor, generate_search_function, trigger, query_model,
@@ -8,7 +8,7 @@
 	 * local copy
 	 * @var object
 	 */
-	adjutor = ns.adjutor;
+	adjutor = Polypus.adjutor;
 
 	/**
 	 * @param Collection collection
@@ -104,7 +104,7 @@
 	 * @param Model model
 	 * @return Collection
 	 */
-	Collection = ns.Collection = function Collection(model) {
+	Collection = Polypus.Collection = function Collection(model) {
 		this.of = model;
 		this.items = [];
 		this.events = [];

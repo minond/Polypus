@@ -1,4 +1,4 @@
-(function(ns) {
+(function(Polypus) {
 	"use strict";
 
 	var Controller, parse_event_string, remove_ui_events, add_ui_events,
@@ -8,13 +8,13 @@
 	 * local copy
 	 * @var object
 	 */
-	adjutor = ns.adjutor;
+	adjutor = Polypus.adjutor;
 
 	/**
 	 * local copy
 	 * @var object
 	 */
-	eventuum = ns.eventuum;
+	eventuum = Polypus.eventuum;
 
 	/**
 	 * parse inforamation from a controller's event object string
@@ -56,7 +56,7 @@
 	 * @param object proto
 	 * @param object ui
 	 */
-	Controller = ns.Controller = function ApplicationController(proto, ui) {
+	Controller = Polypus.Controller = function ApplicationController(proto, ui) {
 		var Instance = function() {}, instance;
 
 		Instance.prototype = proto;

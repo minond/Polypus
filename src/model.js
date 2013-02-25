@@ -1,4 +1,4 @@
-(function(ns) {
+(function(Polypus) {
 	"use strict";
 
 	var Model, ModelEnumerableValue, adjutor, save_action, has_props, trigger,
@@ -12,7 +12,7 @@
 	 * local copy
 	 * @var object
 	 */
-	adjutor = ns.adjutor;
+	adjutor = Polypus.adjutor;
 
 	/**
 	 * @var ModelEnumerableValue
@@ -330,7 +330,7 @@
 	 * @param object config
 	 * @return ModelInstance
 	 */
-	Model = ns.Model = function Model(props, config) {
+	Model = Polypus.Model = function Model(props, config) {
 		var observing = {}, base, proto;
 
 		if (!props) {

@@ -1,4 +1,4 @@
-(function(ns, global) {
+(function(Polypus, global) {
 	"use strict";
 
 	var binding, adjutor, eventuum;
@@ -7,19 +7,19 @@
 	 * local copy
 	 * @var object 
 	 */
-	adjutor = ns.adjutor;
+	adjutor = Polypus.adjutor;
 
 	/**
 	 * local copy
 	 * @var object
 	 */
-	eventuum = ns.eventuum;
+	eventuum = Polypus.eventuum;
 
 	/**
 	 * acts as a namespace
 	 * @var array
 	 */
-	binding = ns.Template.config.load.binding = {};
+	binding = Polypus.Template.config.load.binding = {};
 
 	/**
 	 * bind to string parses

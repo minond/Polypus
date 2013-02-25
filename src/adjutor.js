@@ -1,4 +1,4 @@
-(function(ns) {
+(function(Polypus) {
 	"use strict";
 
 	var adjutor;
@@ -7,7 +7,7 @@
 	 * acts as a namespace
 	 * @var object
 	 */
-	adjutor = ns.adjutor = {};
+	adjutor = Polypus.adjutor = {};
 
 	/**
 	 * for helper

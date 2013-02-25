@@ -1,4 +1,4 @@
-(function(ns) {
+(function(Polypus) {
 	"use strict";
 
 	var eventuum, adjutor;
@@ -7,13 +7,13 @@
 	 * local copy
 	 * @var object
 	 */
-	adjutor = ns.adjutor;
+	adjutor = Polypus.adjutor;
 
 	/**
 	 * just acts as a namespace
 	 * @var object
 	 */
-	eventuum = ns.eventuum = {};
+	eventuum = Polypus.eventuum = {};
 
 	/**
 	 * event cache
