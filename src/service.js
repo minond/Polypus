@@ -3,7 +3,7 @@
 
 	var Service, service_cache, make_service_call, as_service_call,
 		parse_service_arguments, get_method_arguments, is_service_arg,
-		clean_up_service_name, get_service_by_name, di;
+		clean_up_service_name, get_service_from_cache, find_best_service, di;
 
 	/**
 	 * @var object
@@ -24,9 +24,30 @@
 	 * @param string serv
 	 * @return ServiceInstance
 	 */
-	get_service_by_name = function(serv) {
+	get_service_from_cache = function(serv) {
 		var base = this.clean_up_service_name(serv);
 		return base in service_cache ? service_cache[ base ] : null;
+	};
+
+	/**
+	 * will routate trough a list op di configurations until a service is found
+	 * @param string serv
+	 * @param object[] options
+	 * @return mixed
+	 */
+	find_best_service = function(serv, options) {
+		var service;
+
+		serv = clean_up_service_name(serv);
+
+		Polypus.adjutor.foreach(options, function(i, option) {
+			if (!service && option && serv in option) {
+				service = option[ serv ];
+			}
+		});
+
+		return service ? service :
+			get_service_from_cache.call(Service.api, serv);
 	};
 
 	/**
@@ -63,7 +84,7 @@
 					servstart = i;
 				}
 
-				servs.push(that.get_service_by_name(arg));
+				servs.push(that.get_service_from_cache(arg));
 				return;
 			}
 
@@ -121,10 +142,10 @@
 	/**
 	 * @param string name
 	 * @param object config
-	 * @param object props
+	 * @param mixed function|object props
 	 */
 	Service = Polypus.Service = function ServiceInstance(name, config, props) {
-		var Base, Instance;
+		var Base, Instance, temp;
 
 		if (!config) {
 			config = {};
@@ -133,6 +154,12 @@
 		if (!props) {
 			props = config;
 			config = {};
+		}
+
+		if (props instanceof Function) {
+			temp = {};
+			props.call(temp);
+			props = temp;
 		}
 
 		Base = function ServiceBase() {};
@@ -169,6 +196,7 @@
 		get_method_arguments: get_method_arguments,
 		is_service_arg: is_service_arg,
 		clean_up_service_name: clean_up_service_name,
-		get_service_by_name: get_service_by_name
+		get_service_from_cache: get_service_from_cache,
+		find_best_service: find_best_service
 	};
 })(Polypus);
