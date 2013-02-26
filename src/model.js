@@ -326,18 +326,19 @@
 	/**
 	 * create a new model object. confi options:
 	 * - mixin: ModelInstance[], add properties to base (new) Model
-	 * @param object props
 	 * @param object config
+	 * @param object props
 	 * @return ModelInstance
 	 */
-	Model = Polypus.Model = function Model(props, config) {
+	Model = Polypus.Model = function Model(config, props) {
 		var observing = {}, base, proto;
 
-		if (!props) {
-			props = {};
+		if (!config) {
+			config = {};
 		}
 
-		if (!config) {
+		if (!props) {
+			props = config;
 			config = {};
 		}
 
