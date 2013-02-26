@@ -3,12 +3,21 @@
 
 	var Service, service_cache, make_service_call, as_service_call,
 		parse_service_arguments, get_method_arguments, is_service_arg,
-		clean_up_service_name, get_service_by_name;
+		clean_up_service_name, get_service_by_name, di;
 
 	/**
 	 * @var object
 	 */
 	service_cache = {};
+
+	/**
+	 * as_service_call helper
+	 * @param function func
+	 * @return ServiceRequest
+	 */
+	di = function(func) {
+		return Service.api.as_service_call.call(Service.api, func);
+	};
 
 	/**
 	 * search the service_cache by name
@@ -55,6 +64,11 @@
 				}
 
 				servs.push(that.get_service_by_name(arg));
+				return;
+			}
+
+			if (servstart) {
+				servs.push(undefined);
 			}
 		});
 
@@ -124,13 +138,14 @@
 		Base = function ServiceBase() {};
 		Polypus.adjutor.foreach(props, function(key, val) {
 			if (val instanceof Function) {
-				Base.prototype[ key ] = as_service_call.call(Service.api, val);
+				Base.prototype[ key ] = di(val);
 			} else {
 				Base.prototype[ key ] = val;
 			}
 		});
 
 		Instance = new Base;
+		Instance.config = { di: {} };
 		service_cache[ name ] = Instance;
 		return Instance;
 	};
@@ -147,6 +162,7 @@
 	 * @var object
 	 */
 	Service.api = {
+		di: di,
 		make_service_call: make_service_call,
 		as_service_call: as_service_call,
 		parse_service_arguments: parse_service_arguments,
