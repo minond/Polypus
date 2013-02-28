@@ -46,7 +46,7 @@
 	 * @return boolean
 	 */
 	eventuum.is_window_event = function(evname) {
-		return adjutor.in_array(evname, ["unload", "load"]);
+		return adjutor.in_array(evname, ["unload", "load", "storage"]);
 	};
 
 	/**
