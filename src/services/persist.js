@@ -1,6 +1,6 @@
 "use strict";
 
-var Persist = Polypus.Service("Persist", function() {
+Polypus.Service("Persist", function() {
 	var ns = "__polypus_Persist", link = localStorage,
 		cache = ns in link ? JSON.parse(link[ns]) : {};
 

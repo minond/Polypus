@@ -1,6 +1,6 @@
 "use strict";
 
-var Tabular = Polypus.Service("Tabular", function() {
+Polypus.Service("Tabular", function() {
 	var ns = "__polypus_Tabular", link = localStorage, actions = {},
 		win = Polypus.adjutor.uniq();
 
