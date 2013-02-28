@@ -347,7 +347,11 @@
 		 * @param props
 		 */
 		base = function ModelInstance(props) {
-			this.__id = adjutor.uniq();
+			if (!props) {
+				props = {};
+			}
+
+			this.__id = props.__id ? props.__id : adjutor.uniq();
 			this.__observing = {};
 			this.__collections = [];
 			apply_all_properties(this, props);
@@ -407,13 +411,19 @@
 
 		/**
 		 * returns a plain object with all the model's properties
+		 * @param boolean withid
 		 * @return object
 		 */
-		base.prototype.raw = function() {
+		base.prototype.raw = function(withid) {
 			var that = this, raw = {};
 			adjutor.foreach(this.constructor.prop_list.props, function(i, prop) {
 				raw[ prop ] = that[ prop ];
 			});
+
+			if (withid) {
+				raw.__id = this.__id;
+			}
+
 			return raw;
 		};
 
@@ -431,6 +441,26 @@
 		 */
 		base.prototype.cast = function(to) {
 			return new to(this.raw());
+		};
+
+		/**
+		 * update multiple model properties at once
+		 * @param object update
+		 * @param boolean overwrite
+		 */
+		base.prototype.merge = function(update, overwrite) {
+			var that = this;
+
+			// plain object
+			if (!Model.is_model(update)) {
+				adjutor.foreach(props, function(prop) {
+					if (prop in update) {
+						if (overwrite === true || !that[ prop ]) {
+							that.set(prop, update[ prop ]);
+						}
+					}
+				});
+			}
 		};
 
 		/**
@@ -496,7 +526,8 @@
 	 * @return boolean
 	 */
 	Model.is_model = function(instance) {
-		return instance === instance.prototype.constructor;
+		return instance && instance.prototype &&
+			instance === instance.prototype.constructor;
 	};
 
 	/**
