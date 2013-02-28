@@ -59,18 +59,32 @@
 	Controller = Polypus.Controller = function ApplicationController(proto, ui) {
 		var Instance = function() {}, instance;
 
-		Instance.prototype = proto;
+		Polypus.adjutor.foreach(proto, function(prop, val) {
+			if (val instanceof Function) {
+				Instance.prototype[ prop ] = Polypus.Service.api.di(val);
+			} else {
+				Instance.prototype[ prop ] = val;
+			}
+		});
 
 		Instance.prototype.destroy = function() {
 			remove_ui_events(this, ui);
 		};
 
 		Instance.prototype.load = function() {
+			if (this.__init__) {
+				this.__init__();
+			}
+
 			add_ui_events(this, ui);
 		};
 
 		instance = new Instance;
-		instance.load();
+
+		if (Controller.config.bind.ui.auto) {
+			instance.load();
+		}
+
 		return instance;
 	};
 

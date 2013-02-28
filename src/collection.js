@@ -147,6 +147,7 @@
 		if (allow_duplicate || !this.has(instance)) {
 			added = true;
 			this.items.push(instance);
+			instance.__collections.push(this);
 			trigger(this, "add", [instance]);
 
 			// bind listeners
@@ -172,16 +173,27 @@
 	 * @return boolean
 	 */
 	Collection.prototype.remove = function(instance) {
-		var removed = false, orig_len = this.items.length;
-		instance = this.get(instance);
+		var removed, orig_len, that = this;
 
-		this.items = this.items.filter(function(item) {
-			return item !== instance;
-		});
+		if (instance !== null && instance.constructor === Object) {
+			return this.remove(this.find(instance));
+		} else if (instance instanceof Array) {
+			Polypus.adjutor.foreach(instance, function(i, ins) {
+				that.remove(ins);
+			});
+		} else {
+			removed = false;
+			orig_len = this.items.length;
+			instance = this.get(instance);
 
-		if (orig_len !== this.items.length) {
-			removed = true;
-			trigger(this, "remove");
+			this.items = this.items.filter(function(item) {
+				return item !== instance;
+			});
+
+			if (orig_len !== this.items.length) {
+				removed = true;
+				trigger(this, "remove");
+			}
 		}
 
 		return removed;

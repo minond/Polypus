@@ -280,8 +280,10 @@
 	/**
 	 * @param mixed Collection|Model thing
 	 * @param function action
+	 * @param object collfilter
+	 * @param object collret
 	 */
-	Template.prototype.bind = function(thing, action) {
+	Template.prototype.bind = function(thing, action, collfilter, collret) {
 		var template = this, trigger_redraw = function(model) {
 			model.constructor.__specials__.__redraw__.apply(model);
 		};
@@ -289,7 +291,7 @@
 		if (thing instanceof Polypus.Collection) {
 			thing.observe(["add", "change", "remove"], function(model) {
 				action(template.render({
-					list: this.items
+					list: this.find(collfilter || {}, collret || { $sort: "" })
 				}), this, thing, template);
 
 				this.foreach(function(i, model) {

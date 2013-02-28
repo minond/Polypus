@@ -78,7 +78,7 @@
 	load_in = ns.Template.config.load.load_in = function(holder) {
 		var i, len, par, el, tpl, tpls = [], html, info, max = 100, els = [],
 			tmpels = holder.getElementsByTagName(Template.config.load.tag),
-			type, bindto;
+			type, bindto, cfilter = {}, cret = {};
 
 		for (i = 0, len = tmpels.length; i < len; i++) {
 			els[ i ] = tmpels[ i ];
@@ -110,7 +110,8 @@
 
 				if (bindto) {
 					if (type === bindtos.COLLECTION) {
-						html = tpl.render({ list: bindto.items });
+						cret.$sort = el.dataset.collectionSort;
+						html = tpl.render({ list: bindto.find(cfilter, cret) });
 					} else if (type === bindtos.MODEL) {
 						html = tpl.render(bindto);
 					} else {
@@ -122,7 +123,7 @@
 						apply_output_to_node(par, html, type, bindto);
 						tpls.push(tpl.bind(bindto, function(str) {
 							apply_output_to_node(par, str, type, this);
-						}));
+						}, cfilter, cret));
 					})(par, type);
 				}
 			} else {

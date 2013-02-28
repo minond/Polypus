@@ -349,6 +349,7 @@
 		base = function ModelInstance(props) {
 			this.__id = adjutor.uniq();
 			this.__observing = {};
+			this.__collections = [];
 			apply_all_properties(this, props);
 			base.__specials__.__init__.apply(this);
 		};
@@ -440,6 +441,16 @@
 			return adjutor.in_array(type, base.__inherits__);
 		};
 
+		/**
+		 * remove self from all collections it's part of
+		 */
+		base.prototype.remove = function() {
+			var that = this;
+			adjutor.foreach(this.__collections, function(i, coll) {
+				coll.remove(that);
+			});
+		};
+
 		// trait/mixins
 		if (config.mixin) {
 			base.__inherits__ = config.mixin.concat(base);
@@ -478,6 +489,14 @@
 		}
 
 		return config.singleton ? new base : base;
+	};
+
+	/**
+	 * @param mixed instance
+	 * @return boolean
+	 */
+	Model.is_model = function(instance) {
+		return instance === instance.prototype.constructor;
 	};
 
 	/**

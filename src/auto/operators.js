@@ -44,16 +44,18 @@
 		 * required value operator
 		 */
 		Template.config.operator["!"] = function(template, fields) {
-			return fields[ template.field ] ?
-				this.render_compiled_string(template, fields) : "";
+			var field = fields[ template.field ], pass = field;
+			if (field instanceof Array) pass = !!field.length;
+			return pass ? this.render_compiled_string(template, fields) : "";
 		};
 
 		/**
 		 * flip value operator
 		 */
 		Template.config.operator["!!"] = function(template, fields) {
-			return !fields[ template.field ] ?
-				this.render_compiled_string(template, fields) : "";
+			var field = fields[ template.field ], pass = field;
+			if (field instanceof Array) pass = !!field.length;
+			return !pass ? this.render_compiled_string(template, fields) : "";
 		};
 
 		/**
