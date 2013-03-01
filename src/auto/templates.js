@@ -139,14 +139,6 @@
 		return tpls;
 	};
 
-	// auto hide
-	if (Template.config.load.hide) {
-		var style = document.createElement('style');
-		style.type = 'text/css';
-		style.innerHTML = Template.config.load.tag + ' { display: none; }';
-		document.getElementsByTagName('head')[0].appendChild(style);
-	}
-
 	// template auto-loader
 	adjutor.onload(function() {
 		if (Template.config.load.auto) {

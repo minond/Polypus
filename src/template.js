@@ -353,7 +353,6 @@
 		operator: {},
 		load: {
 			operators: true,
-			hide: true,
 			auto: true,
 			from: document,
 			tag: "view"

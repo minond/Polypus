@@ -158,7 +158,7 @@
 
 		if (props instanceof Function) {
 			temp = {};
-			props.call(temp);
+			di(props).call(temp);
 			props = temp;
 		}
 
@@ -181,8 +181,7 @@
 	 * configuration items
 	 * @var object
 	 */
-	Service.config = {
-	};
+	Service.config = {};
 
 	/**
 	 * for testing

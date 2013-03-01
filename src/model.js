@@ -295,7 +295,7 @@
 	 */
 	trigger = function (namespace, property) {
 		var me = "__self" in this ? this.__self : this,
-			args = Array.prototype.slice.call(arguments, 2);
+			args = Array.prototype.slice.call(arguments, 1);
 
 		// instance property subscriber
 		if (has_props(this.__observing, [ namespace, property ])) {

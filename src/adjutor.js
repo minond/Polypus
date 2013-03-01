@@ -27,6 +27,17 @@
 	};
 
 	/**
+	 * repeat an action a number of times
+	 * @param int num
+	 * @param function action
+	 */
+	adjutor.times = function(num, action) {
+		for (var i = 0; i < num; i++) {
+			action(i);
+		}
+	};
+
+	/**
 	 * @param mixed needle
 	 * @param array haystack
 	 * @return boolean
