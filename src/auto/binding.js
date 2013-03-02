@@ -80,7 +80,7 @@
 		var node, selector, info, that = this;
 
 		adjutor.foreach(el.querySelectorAll(
-			this.generate_selector.by_prop("*", propname)), function(i, el)
+			this.generate_selector.by_prop("input", propname)), function(i, el)
 		{
 			node = el.nodeName.toLowerCase();
 			selector = that.generate_selector.by_prop(node, propname);
@@ -95,7 +95,7 @@
 			});
 
 			// model updates
-			info.model.observe("set", info.prop, function(value) {
+			info.model.observe("set", info.prop, function(prop, value) {
 				if (value !== el.value) {
 					el.value = value;
 				}
@@ -112,6 +112,11 @@
 	 */
 	binding.bind_all_in = function(el) {
 		var prop, name, propname, propnames;
+
+		Polypus.eventuum.input("input[data-bindto-property]", function() {
+			var model = Polypus.adjutor.dataset(this, "model");
+			if (model) model.set(this.dataset.bindtoProperty, this.value);
+		});
 
 		for (prop in this.config.props) {
 			propnames = this.config.props[ prop ];

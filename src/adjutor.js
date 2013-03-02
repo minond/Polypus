@@ -170,4 +170,48 @@
 			return val
 		};
 	})();
+
+	/**
+	 * used by time_start and time_end
+	 * @var object
+	 */
+	adjutor.time_cache = {};
+
+	/**
+	 * output time information
+	 * @param string label
+	 * @param int start
+	 */
+	adjutor.time_output = function(label, start) {
+		var end = Date.now() - start;
+		console.log("completed: ", label);
+		console.log("total time: %os (%oms)", end / 1000, end);
+	};
+
+	/**
+	 * time action
+	 * @param string label
+	 * @param function action
+	 */
+	adjutor.time = function(label, action) {
+		var start = Date.now();
+		action();
+		this.time_output(start);
+	};
+
+	/**
+	 * starts a timer
+	 * @param string label
+	 */
+	adjutor.time_start = function(label) {
+		this.time_cache[ label ] = Date.now();
+	};
+
+	/**
+	 * ends a timer
+	 * @param string label
+	 */
+	adjutor.time_end = function(label) {
+		this.time_output(label, this.time_cache[ label ]);
+	};
 })(Polypus);

@@ -1,7 +1,7 @@
 (function(Polypus) {
 	"use strict";
 
-	var eventuum, adjutor;
+	var eventuum, adjutor, loaded;
 
 	/**
 	 * local copy
@@ -54,17 +54,27 @@
 	 * @param string eventname
 	 * @param string selector
 	 * @param function action
+	 * @param Node bindto
 	 */
-	eventuum.on = function(eventname, selector, action) {
+	eventuum.on = function(eventname, selector, action, bindto) {
 		var that = this;
 
 		if (this.is_window_event(eventname)) {
 			if (window && window.addEventListener) {
-				window.addEventListener(eventname, selector);
+				if (!action) {
+					action = selector;
+				}
+
+				if (loaded && eventname === "load") {
+					action.call(window);
+				}
+				else {
+					window.addEventListener(eventname, action);
+				}
 			}
 		} else {
-			if (!(eventname in this.bound)) {
-				eventuum.config.bind.to.addEventListener(eventname, function(ev) {
+			if (!(eventname in this.bound) || bindto) {
+				(bindto || eventuum.config.bind.to).addEventListener(eventname, function(ev) {
 					var max = 200, el = ev.target;
 
 					// simulate bubbling
@@ -75,7 +85,9 @@
 					}
 				});
 
-				this.bound[ eventname ] = [];
+				if (!bindto) {
+					this.bound[ eventname ] = [];
+				}
 			}
 
 			this.bound[ eventname ].push({
@@ -128,4 +140,8 @@
 			to: document
 		}
 	};
+
+	eventuum.load(function() {
+		loaded = true;
+	});
 })(Polypus);
