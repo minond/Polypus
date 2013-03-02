@@ -192,7 +192,7 @@
 
 			if (orig_len !== this.items.length) {
 				removed = true;
-				trigger(this, "remove");
+				trigger(this, "remove", [instance]);
 			}
 		}
 

@@ -72,14 +72,18 @@
 		};
 
 		Instance.prototype.load = function() {
-			if (this.__init__) {
-				this.__init__();
+			if (this.__load__) {
+				this.__load__();
 			}
 
 			add_ui_events(this, ui);
 		};
 
 		instance = new Instance;
+
+		if (instance.__init__) {
+			instance.__init__();
+		}
 
 		if (Controller.config.bind.ui.auto) {
 			instance.load();

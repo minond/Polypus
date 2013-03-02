@@ -5,7 +5,7 @@
 		bind_standard_getter, bind_standard_setter, bind_enumerable_setter,
 		bind_standard_function_call, bind_all_properties, trigger_action, extend,
 		apply_all_properties, is_getset, bind_defined_getter, bind_defined_setter,
-		known_actions = [ "get", "set", "before", "after" ],
+		known_actions = [ "get", "set", "before", "after", "remove" ],
 		special_functions = [ "__init__", "__redraw__" ];
 
 	/**
@@ -363,9 +363,30 @@
 		 * @param string namespace
 		 * @param string property
 		 * @param function action
+		 * @param ModelInstance model
 		 */
-		base.observe = function(namespace, property, action) {
-			save_action(observing, namespace, property, action);
+		base.observe = function(namespace, property, action, model) {
+			// short cut, pass no property and we'll assume global binding
+			if (!action && property instanceof Function) {
+				action = property;
+				property = "*";
+			}
+
+			if (namespace instanceof Array) {
+				adjutor.foreach(namespace, function(i, namespace) {
+					base.observe(namespace, property, action, model);
+				});
+			} else if (property instanceof Array) {
+				adjutor.foreach(property, function(i, property) {
+					base.observe(namespace, property, action, model);
+				});
+			} else {
+				if (model) {
+					save_action(model.__observing, namespace, property, action);
+				} else {
+					save_action(observing, namespace, property, action);
+				}
+			}
 		};
 
 		/**
@@ -375,19 +396,7 @@
 		 * @param function action
 		 */
 		base.prototype.observe = function(namespace, property, action) {
-			var that = this;
-
-			if (namespace instanceof Array) {
-				adjutor.foreach(namespace, function(i, namespace) {
-					that.observe(namespace, property, action);
-				});
-			} else if (property instanceof Array) {
-				adjutor.foreach(property, function(i, property) {
-					that.observe(namespace, property, action);
-				});
-			} else {
-				save_action(this.__observing, namespace, property, action);
-			}
+			base.observe(namespace, property, action, this);
 		};
 
 		/**
@@ -476,6 +485,10 @@
 		 */
 		base.prototype.remove = function() {
 			var that = this;
+			trigger_action(["remove"], [this, {
+				__observing: observing,
+				__self: this
+			}]);
 			adjutor.foreach(this.__collections, function(i, coll) {
 				coll.remove(that);
 			});
