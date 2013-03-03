@@ -334,7 +334,7 @@
 	 * holds templates automatically loaded
 	 * @var CompiledTemplate[]
 	 */
-	Template.list = {};
+	Template.tmpl = {};
 
 	/**
 	 * used to identify where the update request came from

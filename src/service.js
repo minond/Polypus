@@ -178,6 +178,14 @@
 	};
 
 	/**
+	 * so it's available to all controllers and services
+	 * @param string name
+	 */
+	Polypus.Namespace = function AppNamespace(name) {
+		service_cache[ name ] = this;
+	};
+
+	/**
 	 * configuration items
 	 * @var object
 	 */

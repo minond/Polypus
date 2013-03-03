@@ -214,4 +214,23 @@
 	adjutor.time_end = function(label) {
 		this.time_output(label, this.time_cache[ label ]);
 	};
+
+	/**
+	 * find an object in any given parent object (ie, Window)
+	 * @param string ns
+	 * @param array path
+	 */
+	adjutor.find_object = function(ns, path) {
+		var obj = ns;
+
+		for (var i = 0, len = path.length; i < len; i++) {
+			if (path[ i ] in obj) {
+				obj = obj[ path[ i ] ];
+			} else {
+				return null;
+			}
+		}
+
+		return obj;
+	};
 })(Polypus);

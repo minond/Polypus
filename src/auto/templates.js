@@ -96,10 +96,10 @@
 
 			if (el.dataset.bindtoModel || el.dataset.bindtoCollection) {
 				if (el.dataset.bindtoModel) {
-					bindto = global[ el.dataset.bindtoModel ];
+					bindto = Polypus.adjutor.find_object(global, el.dataset.bindtoModel.split("."));
 					type = bindtos.MODEL;
 				} else if (el.dataset.bindtoCollection) {
-					bindto = global[ el.dataset.bindtoCollection ];
+					bindto = Polypus.adjutor.find_object(global, el.dataset.bindtoCollection.split("."));
 					type = bindtos.COLLECTION;
 				}
 
@@ -132,7 +132,7 @@
 			}
 
 			if (el.dataset.name) {
-				Template.list[ el.dataset.name ] = tpl;
+				Template.tmpl[ el.dataset.name ] = tpl;
 			}
 		}
 
