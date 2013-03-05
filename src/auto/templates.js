@@ -78,7 +78,7 @@
 	load_in = ns.Template.config.load.load_in = function(holder) {
 		var i, len, par, el, tpl, tpls = [], html, info, max = 100, els = [],
 			tmpels = holder.getElementsByTagName(Template.config.load.tag),
-			type, bindto, cfilter = {}, cret = {};
+			type, bindto, newpar, cfilter = {}, cret = {};
 
 		for (i = 0, len = tmpels.length; i < len; i++) {
 			els[ i ] = tmpels[ i ];
@@ -106,6 +106,16 @@
 				if (par.children.length !== 1) {
 					// are we the only child?
 					// wrap template in something and use that as output holder
+					newpar = document.createElement(
+						el.dataset.elem ? el.dataset.elem : "span");
+					newpar.id = el.id;
+					newpar.className = el.className;
+					par.insertBefore(newpar, el);
+					par = newpar;
+					window.par = par;
+
+					// remove template node
+					el.remove();
 				}
 
 				if (bindto) {
