@@ -104,6 +104,32 @@
 			// initial value
 			el.value = info.model[ info.prop ];
 		});
+
+		adjutor.foreach(el.querySelectorAll(
+			this.generate_selector.by_prop("select", propname)), function(i, el)
+		{
+			node = el.nodeName.toLowerCase();
+			selector = that.generate_selector.by_prop(node, propname);
+			info = that.parse_bind_string.model_info(
+				el.dataset[ adjutor.data2prop(propname) ]);
+
+			// input value updates
+			eventuum.change(selector, function() {
+				if (this.value !== info.model[ info.prop ]) {
+					info.model.set(info.prop, this.value);
+				}
+			});
+
+			// model updates
+			info.model.observe("set", info.prop, function(prop, value) {
+				if (value !== el.value) {
+					el.value = value;
+				}
+			});
+
+			// initial value
+			el.value = info.model[ info.prop ];
+		});
 	};
 
 	/**

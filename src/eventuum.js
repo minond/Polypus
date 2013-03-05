@@ -107,6 +107,15 @@
 	};
 
 	/**
+	 * self.on(change) shortcut
+	 * @param string selector
+	 * @param function action
+	 */
+	eventuum.change = function(selector, action) {
+		this.on("change", selector, action);
+	};
+
+	/**
 	 * self.on(input) shortcut
 	 * @param string selector
 	 * @param function action
