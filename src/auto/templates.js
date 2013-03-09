@@ -77,8 +77,9 @@
 	 */
 	load_in = ns.Template.config.load.load_in = function(holder) {
 		var i, len, par, el, tpl, tpls = [], html, info, max = 100, els = [],
-			tmpels = holder.getElementsByTagName(Template.config.load.tag),
-			type, bindto, newpar, cfilter = {}, cret = {};
+			type, bindto, newpar, cfilter = {}, cret = {},
+			tmpels = holder.querySelectorAll(
+				"*[data-bindto-collection], *[data-bindto-model], *[data-tmpl-name]");
 
 		for (i = 0, len = tmpels.length; i < len; i++) {
 			els[ i ] = tmpels[ i ];
@@ -103,21 +104,6 @@
 					type = bindtos.COLLECTION;
 				}
 
-				if (par.children.length !== 1) {
-					// are we the only child?
-					// wrap template in something and use that as output holder
-					newpar = document.createElement(
-						el.dataset.elem ? el.dataset.elem : "span");
-					newpar.id = el.id;
-					newpar.className = el.className;
-					par.insertBefore(newpar, el);
-					par = newpar;
-					window.par = par;
-
-					// remove template node
-					el.remove();
-				}
-
 				if (bindto) {
 					if (type === bindtos.COLLECTION) {
 						cret.$sort = el.dataset.collectionSort;
@@ -129,20 +115,20 @@
 						continue;
 					}
 
-					(function(par, type) {
-						apply_output_to_node(par, html, type, bindto);
+					(function(el, type) {
+						apply_output_to_node(el, html, type, bindto);
 						tpls.push(tpl.bind(bindto, function(str) {
-							apply_output_to_node(par, str, type, this);
+							apply_output_to_node(el, str, type, this);
 						}, cfilter, cret));
-					})(par, type);
+					})(el, type);
 				}
 			} else {
 				// remove template node
 				el.remove();
 			}
 
-			if (el.dataset.name) {
-				Template.tmpl[ el.dataset.name ] = tpl;
+			if (el.dataset.tmplName) {
+				Template.tmpl[ el.dataset.tmplName ] = tpl;
 			}
 		}
 
