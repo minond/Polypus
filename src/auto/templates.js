@@ -1,7 +1,7 @@
 (function(ns, global) {
 	"use strict";
 
-	var bindtos, apply_output_to_node, load_in, adjutor, Template;
+	var bindtos, apply_output_to_node, load_in, bind_el, adjutor, Template;
 
 	/**
 	 * local copy
@@ -71,13 +71,62 @@
 	}
 
 	/**
+	 * binds an element to a Model or Collection
+	 * @param Node el
+	 */
+	bind_el = ns.Template.config.load.bind_el = function(el) {
+		var tpl, html, type, bindto, cfilter = {}, cret = {};
+
+		if (el.dataset.load) {
+			tpl = Template.request(el.dataset.load);
+		} else {
+			tpl = new Template(el.innerHTML);
+		}
+
+		if (el.dataset.bindtoModel || el.dataset.bindtoCollection) {
+			if (el.dataset.bindtoModel) {
+				bindto = Polypus.adjutor.find_object(global, el.dataset.bindtoModel.split("."));
+				type = bindtos.MODEL;
+			} else if (el.dataset.bindtoCollection) {
+				bindto = Polypus.adjutor.find_object(global, el.dataset.bindtoCollection.split("."));
+				type = bindtos.COLLECTION;
+			}
+
+			if (bindto) {
+				if (type === bindtos.COLLECTION) {
+					cret.$sort = el.dataset.collectionSort;
+					html = tpl.render({ list: bindto.find(cfilter, cret) });
+				} else if (type === bindtos.MODEL) {
+					html = tpl.render(bindto);
+				} else {
+					// what?
+					return;
+				}
+
+				(function(el, type) {
+					apply_output_to_node(el, html, type, bindto);
+					tpl.bind(bindto, function(str) {
+						apply_output_to_node(el, str, type, this);
+					}, cfilter, cret);
+				})(el, type);
+			}
+		} else {
+			// remove template node
+			el.remove();
+		}
+
+		if (el.dataset.tmplName) {
+			Template.tmpl[ el.dataset.tmplName ] = tpl;
+		}
+	};
+
+	/**
 	 * compile and display templates is a give section
 	 * @param Node holder
 	 * @return CompiledTemplate[]
 	 */
 	load_in = ns.Template.config.load.load_in = function(holder) {
-		var i, len, par, el, tpl, tpls = [], html, info, max = 100, els = [],
-			type, bindto, newpar, cfilter = {}, cret = {},
+		var i, len, max = 100, els = [],
 			tmpels = holder.querySelectorAll(
 				"*[data-bindto-collection], *[data-bindto-model], *[data-tmpl-name]");
 
@@ -86,53 +135,8 @@
 		}
 
 		for (i = 0, len = els.length; max-- && i < len; i++) {
-			el = els[i];
-			par = el.parentNode;
-
-			if (el.dataset.load) {
-				tpl = Template.request(el.dataset.load);
-			} else {
-				tpl = new Template(el.innerHTML);
-			}
-
-			if (el.dataset.bindtoModel || el.dataset.bindtoCollection) {
-				if (el.dataset.bindtoModel) {
-					bindto = Polypus.adjutor.find_object(global, el.dataset.bindtoModel.split("."));
-					type = bindtos.MODEL;
-				} else if (el.dataset.bindtoCollection) {
-					bindto = Polypus.adjutor.find_object(global, el.dataset.bindtoCollection.split("."));
-					type = bindtos.COLLECTION;
-				}
-
-				if (bindto) {
-					if (type === bindtos.COLLECTION) {
-						cret.$sort = el.dataset.collectionSort;
-						html = tpl.render({ list: bindto.find(cfilter, cret) });
-					} else if (type === bindtos.MODEL) {
-						html = tpl.render(bindto);
-					} else {
-						// what?
-						continue;
-					}
-
-					(function(el, type) {
-						apply_output_to_node(el, html, type, bindto);
-						tpls.push(tpl.bind(bindto, function(str) {
-							apply_output_to_node(el, str, type, this);
-						}, cfilter, cret));
-					})(el, type);
-				}
-			} else {
-				// remove template node
-				el.remove();
-			}
-
-			if (el.dataset.tmplName) {
-				Template.tmpl[ el.dataset.tmplName ] = tpl;
-			}
+			bind_el(els[ i ]);
 		}
-
-		return tpls;
 	};
 
 	// template auto-loader
