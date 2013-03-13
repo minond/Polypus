@@ -102,14 +102,26 @@
 
 	/**
 	 * @param Model model
+	 * @param object config
 	 * @return Collection
 	 */
-	Collection = Polypus.Collection = function Collection(model) {
+	Collection = Polypus.Collection = function Collection(model, config) {
+		var that = this;
+
 		this.of = model;
 		this.items = [];
 		this.events = [];
 		generate_search_function(this, model, "get", "get_by_");
 		generate_search_function(this, model, "find", "find_by_");
+
+		// apply configuration
+		if (config) {
+			if ("attrs" in config) {
+				Polypus.adjutor.foreach(config.attrs, function(attr, val) {
+					that[ attr ] = val;
+				});
+			}
+		}
 	};
 
 	/**

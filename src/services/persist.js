@@ -52,14 +52,6 @@ Polypus.Service("Persist", function() {
 	this.collection = function(key, coll, $Tabular, $Sync) {
 		var models, hash = "local_collection_" + key;
 
-		// listen to updates from other tabs
-		$Tabular.on(hash, function(model) {
-			// duplicate?
-			if (!coll.get_by_id(model.__id)) {
-				coll.create(model);
-			}
-		});
-
 		// do we have any models for this collection?
 		if (this.has(hash)) {
 			models = this.get(hash);
@@ -69,6 +61,15 @@ Polypus.Service("Persist", function() {
 		} else {
 			this.set(hash, []);
 		}
+
+		// listen to updates from other tabs
+		$Tabular.on(hash, function(model) {
+			console.log(model);
+			// duplicate?
+			if (!coll.get_by_id(model.__id)) {
+				coll.create(model);
+			}
+		});
 
 		// listen to any future additions
 		coll.observe("add", function(model) {
