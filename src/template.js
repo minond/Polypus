@@ -206,10 +206,13 @@
 			} else if (cur instanceof Object) {
 				inner_cur = fields[ cur.field ];
 
+				if (inner_cur instanceof Function) {
+					inner_cur = inner_cur.call(fields);
+				}
+
 				if (cur.raw === cur.field) {
 					// single merge field
-					str.push(inner_cur instanceof Function ?
-						inner_cur.call(fields) : inner_cur);
+					str.push(inner_cur);
 				} else {
 					// list merge field
 					if (cur.field in fields) {
