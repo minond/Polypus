@@ -204,7 +204,7 @@
 	 * @return ModelInstance
 	 */
 	Collection.prototype.get = function(instance) {
-		return this.find(instance)[0];
+		return this.find(instance || {})[0];
 	};
 
 	/**
@@ -223,6 +223,10 @@
 	 */
 	Collection.prototype.find = function(instance, retinfo) {
 		var match = false, matches = [], i, len, prop;
+
+		if (!instance) {
+			instance = {};
+		}
 
 		if (instance.instance_of && instance.instance_of(this.of)) {
 			for (i = 0, len = this.items.length; i < len; i++) {
@@ -255,6 +259,52 @@
 		}
 
 		return apply_ret_info(matches, retinfo);
+	};
+
+	/**
+	 * returns all items
+	 * @return array
+	 */
+	Collection.prototype.all = function() {
+		return this.items;
+	};
+
+	/**
+	 * returns the first model in our list
+	 * @return ModelInstance
+	 */
+	Collection.prototype.first = function() {
+		return this.items[ 0 ];
+	};
+
+	/**
+	 * returns the last model in our list
+	 * @return ModelInstance
+	 */
+	Collection.prototype.last = function() {
+		return this.items[ this.items.length - 1 ];
+	};
+
+	/**
+	 * returns a random model in our list
+	 * @return ModelInstance
+	 */
+	Collection.prototype.any = function() {
+		return this.items[ Math.floor(Math.random() * this.items.length) ];
+	};
+
+	/**
+	 * pass an object with a list of updates and all models matching the filter
+	 * will be updated
+	 * @param object updates
+	 * @param object filters
+	 */
+	Collection.prototype.merge = function(updates, filters) {
+		var models = this.find(filters), that = this, update;
+
+		Polypus.adjutor.foreach(models, function(i, model) {
+			model.merge(updates, true);
+		});
 	};
 
 	/**
