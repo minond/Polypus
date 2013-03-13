@@ -75,7 +75,7 @@
 	 * @param Node el
 	 */
 	bind_el = ns.Template.config.load.bind_el = function(el) {
-		var tpl, html, type, bindto, cfilter = {}, cret = {};
+		var tpl, html, type, bindto;
 
 		if (el.dataset.load) {
 			tpl = Template.request(el.dataset.load);
@@ -93,21 +93,13 @@
 			}
 
 			if (bindto) {
-				if (type === bindtos.COLLECTION) {
-					cret.$sort = el.dataset.collectionSort;
-					html = tpl.render({ list: bindto.find(cfilter, cret) });
-				} else if (type === bindtos.MODEL) {
-					html = tpl.render(bindto);
-				} else {
-					// what?
-					return;
-				}
+				html = tpl.render(bindto);
 
 				(function(el, type) {
 					apply_output_to_node(el, html, type, bindto);
 					tpl.bind(bindto, function(str) {
 						apply_output_to_node(el, str, type, this);
-					}, cfilter, cret);
+					});
 				})(el, type);
 			}
 		} else {
