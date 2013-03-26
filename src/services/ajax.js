@@ -2,7 +2,15 @@
 
 Polypus.Service("Ajax", {
 	/**
-	 * @param object
+	 * force settings on all requests. for testing
+	 * @var object
+	 */
+	force: {
+		url: null
+	},
+
+	/**
+	 * @param object data
 	 *  - string url
 	 *  - string methdo
 	 *  - strinl data
@@ -11,8 +19,9 @@ Polypus.Service("Ajax", {
 	 */
 	request: function(data) {
 		var xhr = new XMLHttpRequest;
-		xhr.open(data.method, data.url, !!data.callback);
-		xhr.send(data.data);
+
+		xhr.open(data.method, this.force.url ? this.force.url : data.url,
+			!!data.callback);
 
 		if (data.callback) {
 			xhr.onreadystatechange = function() {
@@ -22,20 +31,23 @@ Polypus.Service("Ajax", {
 			};
 		}
 
+		if (data.headers) {
+			Polypus.adjutor.foreach(data.headers, function(header, value) {
+				xhr.setRequestHeader(header, value);
+			});
+		}
+
+		xhr.send(data.data);
 		return data.callback ? xhr : xhr.responseText;
 	},
 
 	/**
 	 * Ajax.request({ method: GET }) shortcut
-	 * @param string url
-	 * @param function callback
+	 * @param object data
 	 * @return mixed XMLHttpRequest|string
 	 */
-	get: function(url, callback) {
-		return this.request({
-			method: "GET",
-			url: url,
-			callback: callback
-		});
+	get: function(data) {
+		data.method = "GET"
+		return this.request(data);
 	}
 });
