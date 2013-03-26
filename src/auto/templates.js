@@ -104,7 +104,7 @@
 			}
 		} else {
 			// remove template node
-			el.remove();
+			el.parentNode.removeChild(el);
 		}
 
 		if (el.dataset.tmplName) {
