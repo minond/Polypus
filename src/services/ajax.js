@@ -47,7 +47,17 @@ Polypus.Service("Ajax", {
 	 * @return mixed XMLHttpRequest|string
 	 */
 	get: function(data) {
-		data.method = "GET"
+		data.method = "GET";
+		return this.request(data);
+	},
+
+	/**
+	 * Ajax.request({ method: POST }) shortcut
+	 * @param object data
+	 * @return mixed XMLHttpRequest|string
+	 */
+	post: function(data) {
+		data.method = "POST";
 		return this.request(data);
 	}
 });
