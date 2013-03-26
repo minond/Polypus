@@ -13,8 +13,11 @@ Polypus.Service("Ajax", {
 	 * @param object data
 	 *  - string url
 	 *  - string methdo
-	 *  - strinl data
+	 *  - string data
+	 *  - array headers
 	 *  - function callback
+	 *  - function before
+	 *  - function after
 	 * @return mixed XMLHttpRequest|string
 	 */
 	request: function(data) {
@@ -37,7 +40,15 @@ Polypus.Service("Ajax", {
 			});
 		}
 
+		if (data.before) {
+			data.before.call(xhr);
+		}
+
 		xhr.send(data.data);
+
+		if (data.after) {
+			data.after.call(xhr);
+		}
 		return data.callback ? xhr : xhr.responseText;
 	},
 
