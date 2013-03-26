@@ -16,6 +16,14 @@ Polypus.Service("Persist", function() {
 	this.handler = [];
 
 	/**
+	 * clears local storage and internal cache
+	 */
+	this.clear = function() {
+		link.clear();
+		this.cache = cache = {};
+	};
+
+	/**
 	 * @param string key
 	 * @return boolean
 	 */
@@ -28,7 +36,7 @@ Polypus.Service("Persist", function() {
 	 * @return mixed
 	 */
 	this.get = function(key) {
-		return cache[ key ].val;
+		return cache[ key ] ? cache[ key ].val : null;
 	};
 
 	/**
