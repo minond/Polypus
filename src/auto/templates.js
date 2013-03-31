@@ -94,6 +94,7 @@
 
 			if (bindto) {
 				html = tpl.render(bindto);
+				el.className += " processed";
 
 				(function(el, type) {
 					apply_output_to_node(el, html, type, bindto);
