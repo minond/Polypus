@@ -11,7 +11,7 @@
 
 	/**
 	 * local copy
-	 * @var object 
+	 * @var object
 	 */
 	adjutor = ns.adjutor;
 

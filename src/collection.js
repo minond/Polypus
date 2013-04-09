@@ -46,6 +46,10 @@
 					else
 						return -1;
 				});
+
+				if ("$reverse" in retinfo && retinfo.$reverse === true) {
+					copy = copy.reverse();
+				}
 			}
 		} else {
 			copy = models;
@@ -119,6 +123,16 @@
 			if ("attrs" in config) {
 				Polypus.adjutor.foreach(config.attrs, function(attr, val) {
 					that[ attr ] = val;
+				});
+			}
+
+			if ("proto" in config) {
+				Polypus.adjutor.foreach(config.proto, function(attr, val) {
+					if (val instanceof Function) {
+						that[ attr ] = val.bind(that);
+					} else {
+						that[ attr ] = val;
+					}
 				});
 			}
 		}
