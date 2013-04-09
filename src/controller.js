@@ -22,10 +22,13 @@
 	 * @return obj
 	 */
 	parse_event_string = function(str) {
-		var space = str.indexOf(" ");
+		var space = str.indexOf(" "),
+			eventname = str.substr(0, space),
+			selector = str.substr(space + 1);
+
 		return {
-			eventname: str.substr(0, space),
-			selector: str.substr(space + 1)
+			eventname: eventname ? eventname : selector,
+			selector: eventname ? selector : ""
 		};
 	};
 
@@ -45,6 +48,11 @@
 	add_ui_events = function(app, methods) {
 		adjutor.foreach(methods, function(eventinfo, action) {
 			var evinfo = parse_event_string(eventinfo);
+
+			if (typeof action === "string") {
+				action = app[ action ];
+			}
+
 			eventuum.on(evinfo.eventname, evinfo.selector, function(ev) {
 				action.call(app, ev, this);
 			});
