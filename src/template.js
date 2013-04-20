@@ -281,6 +281,13 @@
 	};
 
 	/**
+	 * @return Node
+	 */
+	Template.prototype.get_output = function() {
+		return this.output;
+	};
+
+	/**
 	 * @param mixed Collection|Model thing
 	 * @param function action
 	 */

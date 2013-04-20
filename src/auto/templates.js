@@ -1,7 +1,8 @@
 (function(ns, global) {
 	"use strict";
 
-	var bindtos, apply_output_to_node, load_in, bind_el, adjutor, Template;
+	var bindtos, apply_output_to_node, load_in, bind_el, adjutor, Template,
+		deep_bind, readys = [], ready = false;
 
 	/**
 	 * local copy
@@ -94,6 +95,7 @@
 
 			if (bindto) {
 				html = tpl.render(bindto);
+				tpl.set_output(el);
 				el.className += " processed";
 
 				(function(el, type) {
@@ -110,6 +112,26 @@
 
 		if (el.dataset.tmplName) {
 			Template.tmpl[ el.dataset.tmplName ] = tpl;
+		}
+	};
+
+	/**
+	 * loops through child nodes until it finds one that needs to be bound
+	 * @param Node el
+	 */
+	deep_bind = ns.Template.config.load.deep_bind = function(el) {
+		if (!el) {
+			return null;
+		}
+
+		if (el.dataset && (el.dataset.bindtoModel || el.dataset.bindtoCollection)) {
+			bind_el(el);
+			console.log(el);
+			el.className += " processed";
+		} else if (el.children) {
+			adjutor.foreach(el.children, function(i, e) {
+				deep_bind(e);
+			});
 		}
 	};
 
@@ -132,10 +154,32 @@
 		}
 	};
 
+	/**
+	 * triggered after elements have been loaded from document
+	 * @param function action
+	 * @return boolean - returns true if function was triggered, and false if
+	 *                   it was added to the queue
+	 */
+	ns.Template.onready = function(action) {
+		if (ready) {
+			action.call(ns.Template);
+			return true;
+		} else {
+			readys.push(action);
+			return false;
+		}
+	};
+
 	// template auto-loader
 	adjutor.onload(function() {
 		if (Template.config.load.auto) {
 			load_in(Template.config.load.from);
+			document.body.className += " body_processed";
 		}
+
+		ready = true;
+		adjutor.foreach(readys, function(i, action) {
+			action.call(ns.Template);
+		});
 	});
 })(Polypus, this);

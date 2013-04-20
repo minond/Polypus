@@ -5,7 +5,7 @@
 
 	/**
 	 * local copy
-	 * @var object 
+	 * @var object
 	 */
 	adjutor = Polypus.adjutor;
 
@@ -30,14 +30,14 @@
 		 * parse model binding string (ie. "Clipper.name" => { model: Clipper,
 		 * prop: name, name: "Clipperj })
 		 * @param string str
+		 * @param string prop
 		 * @return object
 		 */
-		model_info: function(str) {
+		model_info: function(str, prop) {
 			var parts = str.split(".");
 			return {
-				prop: parts[1],
-				name: parts[0],
-				model: global[ parts[0] ],
+				prop: prop,
+				model: Polypus.adjutor.find_object(global, parts),
 				raw: str
 			};
 		},
@@ -85,7 +85,8 @@
 			node = el.nodeName.toLowerCase();
 			selector = that.generate_selector.by_prop(node, propname);
 			info = that.parse_bind_string.model_info(
-				el.dataset[ adjutor.data2prop(propname) ]);
+				el.dataset[ adjutor.data2prop(propname) ],
+				el.dataset.bindtoProperty);
 
 			// input value updates
 			eventuum.input(selector, function() {
@@ -111,7 +112,8 @@
 			node = el.nodeName.toLowerCase();
 			selector = that.generate_selector.by_prop(node, propname);
 			info = that.parse_bind_string.model_info(
-				el.dataset[ adjutor.data2prop(propname) ]);
+				el.dataset[ adjutor.data2prop(propname) ],
+				el.dataset.bindtoProperty);
 
 			// input value updates
 			eventuum.change(selector, function() {
