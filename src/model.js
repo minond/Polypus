@@ -3,8 +3,9 @@
 
 	var Model, ModelEnumerableValue, adjutor, save_action, has_props, trigger,
 		bind_standard_getter, bind_standard_setter, bind_enumerable_setter,
-		bind_standard_function_call, bind_all_properties, trigger_action, extend,
-		apply_all_properties, is_getset, bind_defined_getter, bind_defined_setter,
+		bind_standard_function_call, bind_array_adder, bind_all_properties,
+		trigger_action, extend, apply_all_properties, is_getset,
+		bind_defined_getter, bind_defined_setter,
 		known_actions = [ "get", "set", "before", "after", "remove" ],
 		special_functions = [ "__init__", "__redraw__" ];
 
@@ -60,6 +61,26 @@
 				}
 			}
 		}
+	};
+
+	/**
+	 * binds an array "adder" function
+	 * @param Model base
+	 * @param string prop
+	 * @param object observing
+	 */
+	bind_array_adder = function(base, prop, observing) {
+		base.prototype[ "add_" + prop ] = function (val) {
+			this[ prop ].push(val);
+			trigger_action(["set", prop, val], [this, {
+				__observing: observing,
+				__self: this
+			}]);
+			trigger_action(["add", prop, val], [this, {
+				__observing: observing,
+				__self: this
+			}]);
+		};
 	};
 
 	/**
@@ -236,6 +257,10 @@
 						base.prototype[ prop ] = thisprop;
 						bind_standard_setter(base, prop, observing);
 						bind_standard_getter(base, prop, observing);
+
+						if (thisprop instanceof Array) {
+							bind_array_adder(base, prop, observing);
+						}
 					}
 				}
 			})(prop, thisprop);
@@ -425,8 +450,13 @@
 		 */
 		base.prototype.raw = function(withid) {
 			var that = this, raw = {};
+
 			adjutor.foreach(this.constructor.prop_list.props, function(i, prop) {
-				raw[ prop ] = that[ prop ];
+				if (that[ prop ] instanceof Polypus.Collection) {
+					raw[ prop ] = "<Polypus:CollectionObject>";
+				} else {
+					raw[ prop ] = that[ prop ];
+				}
 			});
 
 			if (withid) {

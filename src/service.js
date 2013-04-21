@@ -3,7 +3,8 @@
 
 	var Service, service_cache, make_service_call, as_service_call,
 		parse_service_arguments, get_method_arguments, is_service_arg,
-		clean_up_service_name, get_service_from_cache, find_best_service, di;
+		clean_up_service_name, get_service_from_cache, find_best_service, di,
+		add_service;
 
 	/**
 	 * @var object
@@ -140,6 +141,15 @@
 	};
 
 	/**
+	 * add a service
+	 * @param string key
+	 * @param mixed service
+	 */
+	add_service = function(key, service) {
+		service_cache[ key ] = service;
+	};
+
+	/**
 	 * @param string name
 	 * @param object config
 	 * @param mixed function|object props
@@ -204,6 +214,7 @@
 		is_service_arg: is_service_arg,
 		clean_up_service_name: clean_up_service_name,
 		get_service_from_cache: get_service_from_cache,
-		find_best_service: find_best_service
+		find_best_service: find_best_service,
+		add_service: add_service
 	};
 })(Polypus);
