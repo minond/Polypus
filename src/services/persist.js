@@ -51,6 +51,26 @@ Polypus.Service("Persist", function() {
 	};
 
 	/**
+	 * @param string key
+	 */
+	this.unset = function(key) {
+		var deleted = delete cache[ key ];
+		cache.__last_update = key;
+		link[ ns ] = JSON.stringify(cache);
+		return deleted;
+	};
+
+	/**
+	 * stop persisting collection
+	 * @param string key
+	 * @return boolean
+	 */
+	this.unset_collection = function(key) {
+		// TODO: should unbind $Tabular events as well
+		return this.unset("local_collection_" + key);
+	};
+
+	/**
 	 * persist a collection's models
 	 * @param string key
 	 * @param Collection coll
@@ -72,7 +92,6 @@ Polypus.Service("Persist", function() {
 
 		// listen to updates from other tabs
 		$Tabular.on(hash, function(model) {
-			console.log(model);
 			// duplicate?
 			if (!coll.get_by_id(model.__id)) {
 				coll.create(model);
@@ -106,7 +125,7 @@ Polypus.Service("Persist", function() {
 			// should already be in our cache
 			Polypus.adjutor.foreach(models, function(i, m) {
 				if (m.__id === model.__id) {
-					models[ i ] = model.raw();
+					models[ i ] = model.raw(true);
 				}
 			});
 

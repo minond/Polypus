@@ -80,11 +80,14 @@
 		};
 
 		Instance.prototype.load = function() {
-			if (this.__load__) {
-				this.__load__();
-			}
+			var that = this;
+			Polypus.Template.onready(function() {
+				if (that.__load__) {
+					that.__load__();
+				}
 
-			add_ui_events(this, ui);
+				add_ui_events(that, ui);
+			});
 		};
 
 		instance = new Instance;
