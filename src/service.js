@@ -184,6 +184,13 @@
 		Instance = new Base;
 		Instance.config = { di: {} };
 		service_cache[ name ] = Instance;
+
+		if (Instance.__load__) {
+			Polypus.eventuum.load(function() {
+				Instance.__load__();
+			});
+		}
+
 		return Instance;
 	};
 
