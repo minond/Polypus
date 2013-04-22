@@ -115,6 +115,7 @@
 		this.of = model;
 		this.items = [];
 		this.events = [];
+		this.length = 0;
 		generate_search_function(this, model, "get", "get_by_");
 		generate_search_function(this, model, "find", "find_by_");
 
@@ -173,6 +174,7 @@
 		if (allow_duplicate || !this.has(instance)) {
 			added = true;
 			this.items.push(instance);
+			this.length = this.items.length;
 			instance.__collections.push(this);
 			trigger(this, "add", [instance]);
 
@@ -215,6 +217,7 @@
 			this.items = this.items.filter(function(item) {
 				return item !== instance;
 			});
+			this.length = this.items.length;
 
 			if (orig_len !== this.items.length) {
 				removed = true;

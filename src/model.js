@@ -412,6 +412,8 @@
 					save_action(observing, namespace, property, action);
 				}
 			}
+
+			return base;
 		};
 
 		/**
@@ -422,6 +424,7 @@
 		 */
 		base.prototype.observe = function(namespace, property, action) {
 			base.observe(namespace, property, action, this);
+			return this;
 		};
 
 		/**
