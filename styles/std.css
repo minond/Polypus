@@ -1,8 +1,0 @@
-*[data-bindto-collection], *[data-bindto-model], *[data-tmpl-name] {
-	display: none;
-}
-
-.body_processed *[data-bindto-collection], *[data-bindto-model], *[data-tmpl-name],
-*[data-bindto-collection].processed, *[data-bindto-model].processed, *[data-tmpl-name].processed {
-	display: initial;
-}
