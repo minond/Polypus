@@ -4,7 +4,7 @@ module.exports = function(grunt) {
             coverage: {
                 src: ["src/*.js"],
                 options: {
-                    specs: ["src/test/*.js"],
+                    specs: ["tests/*.js"],
                     template: require("grunt-template-jasmine-istanbul"),
                     templateOptions: {
                         coverage: "bin/coverage/coverage.json",
